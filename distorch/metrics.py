@@ -6,14 +6,13 @@ from torch import Tensor
 from distorch.distance_transform import euclidean_distance_transform
 from distorch.surface import is_surface_vertex
 
+use_pykeops = True
 try:
     from pykeops.torch import LazyTensor
-
-    use_pykeops = False
 except:
     import warnings
 
-    warnings.warn('PyKeops could not be imported, this may result in high memory usage.')
+    warnings.warn('PyKeops could not be imported, this will result in high memory usage.')
     use_pykeops = False
 
 
