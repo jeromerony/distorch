@@ -19,6 +19,10 @@ def euclidean_distance_transform(images: Tensor) -> Tensor:
     Similar to `scipy.ndimage.distance_transform_edt`, but computes the distance away from the True value region.
     TODO: add comprehensive docstring
     """
+    ndim = images.ndim
+    if ndim == 2:
+        images = images.unsqueeze(0)
+
     b = images.size(0)
     spatial_dims = images.shape[1:]
     max_dist = float('inf')  # by convention, infinite distance for empty image
@@ -40,6 +44,8 @@ def euclidean_distance_transform(images: Tensor) -> Tensor:
         dist = pairwise_distances.unsqueeze(0).masked_fill(~images.reshape(b, 1, n), max_dist).amin(dim=2)
 
     dist = dist.reshape_as(images)
+    if ndim == 2:
+        dist.squeeze_(0)
     return dist
 
 
