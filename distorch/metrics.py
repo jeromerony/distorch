@@ -47,11 +47,11 @@ def surface_metrics(images1: Tensor,
                     quantile: float | Tensor = 0.95) -> dict[str, Tensor]:
     """
     Computes metrics between the surfaces of two sets. These metrics include the surface Hausdorff distance, the
-    directed average surface distances and the quantile of the directed surface distance (also called Hausdorff 95%).
+    directed average surface distances and the quantile of the directed surface distances (also called Hausdorff 95%).
     This function computes the distances between the true surfaces of the sets instead of using the center of the
-    element. For instance, an isolated pixel has 4 edges (and vertices).
-    This implementation uses grid-aligned, regularly spaces vertices to represent the surface. Therefore, a straight
-    line of length 5 (in pixel space) is formed by 6 vertices.
+    element. For instance, an isolated pixel has 4 edges and 4 vertices, with an area of 1.
+    This implementation uses grid-aligned, regularly spaced vertices to represent surfaces. Therefore, a straight line
+    of length 5 (in pixel space) is formed by 6 vertices.
 
     Parameters
     ----------
