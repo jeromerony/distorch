@@ -30,6 +30,9 @@ classifiers = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+dev = ["pytest"]
+
 [tool.setuptools]
 packages = ["distorch"]
 
