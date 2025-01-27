@@ -21,31 +21,25 @@ def euclidean_distance_transform(images: Tensor) -> Tensor:
     """
     b = images.size(0)
     spatial_dims = images.shape[1:]
+    max_dist = float('inf')  # by convention, infinite distance for empty image
     n = int(np.prod(spatial_dims))  # number of elements (i.e. pixels/voxels)
     device = images.device
 
     aranges = (torch.arange(s, device=device, dtype=torch.float) for s in spatial_dims)
     pos = torch.stack(torch.meshgrid(*aranges, indexing='ij'), dim=-1)
 
-    max_dist = float(np.linalg.norm(spatial_dims))
     if use_pykeops:
         pos_i = LazyTensor(pos.reshape(1, n, 1, -1))
         pos_j = LazyTensor(pos.reshape(1, 1, n, -1))
         pairwise_distances: LazyTensor = (pos_i - pos_j).norm2()
+        compat = LazyTensor(torch.where(images, 0, max_dist).reshape(b, 1, n, 1))
+        dist = (pairwise_distances + compat).min(dim=2)
 
-        images_float = images.to(torch.float)  # pykeops is not compatible with bool
-        images_i = LazyTensor(images_float.reshape(b, n, 1, 1))
-        images_j = LazyTensor(images_float.reshape(b, 1, n, 1))
-        pairwise_same: LazyTensor = (2 * images_i * images_j + 1 - images_i - images_j).sum(dim=3)  # float XNOR
-
-        dist = (pairwise_same * max_dist + pairwise_distances).min(dim=2)
     else:
         pairwise_distances: Tensor = (pos.reshape(n, 1, -1) - pos.reshape(1, n, -1)).norm(p=2, dim=2)
-        pairwise_same: Tensor = torch.logical_xor(images.reshape(b, n, 1), images.reshape(b, 1, n)).logical_not_()
-        dist = pairwise_distances.unsqueeze(0).masked_fill(pairwise_same, max_dist).amin(dim=2)
+        dist = pairwise_distances.unsqueeze(0).masked_fill(~images.reshape(b, 1, n), max_dist).amin(dim=2)
 
     dist = dist.reshape_as(images)
-    dist.masked_fill_(images, 0)
     return dist
 
 
@@ -62,10 +56,12 @@ def surface_euclidean_distance_transform(images: Tensor) -> Tensor:
 
     surface_dists = []
     for is_v in is_vertex:
+
         if use_pykeops:
             surface_vertices = LazyTensor(coords[is_v].reshape(1, -1, coords_ndim))
             pairwise_distances: LazyTensor = (coords_i - surface_vertices).norm2()
             surface_dists.append(pairwise_distances.min(dim=1).reshape(*coords_shape))
+
         else:
             surface_vertices = coords[is_v].reshape(1, -1, coords_ndim)
             pairwise_distances: Tensor = (coords.reshape(-1, 1, coords_ndim) - surface_vertices).norm(p=2, dim=2)
