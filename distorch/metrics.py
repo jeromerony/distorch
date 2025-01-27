@@ -16,7 +16,7 @@ except:
     use_pykeops = False
 
 
-def hausdorff(images1: Tensor, images2: Tensor) -> Tensor:
+def hausdorff(images1: Tensor, images2: Tensor, /) -> Tensor:
     """
     Computes the Hausdorff distances between batches of images (or 3d volumes). The images should be binary, where True
     indicates that an element (i.e. pixel/voxel) belongs to the set for which we want to compute the Hausdorff distance.
