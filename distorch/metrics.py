@@ -83,8 +83,7 @@ def surface_metrics(images1: Tensor,
         surface_vertices_2 = coords[is_v_2].view(1, -1, coords_ndim)
 
         if use_pykeops:
-            surface_vertices_1, surface_vertices_2 = LazyTensor(surface_vertices_1), LazyTensor(surface_vertices_2)
-            pairwise_distances = (surface_vertices_1 - surface_vertices_2).norm2()
+            pairwise_distances = (LazyTensor(surface_vertices_1) - LazyTensor(surface_vertices_2)).norm2()
             dist_1_to_2 = pairwise_distances.min(dim=1)
             dist_2_to_1 = pairwise_distances.min(dim=0)
 
