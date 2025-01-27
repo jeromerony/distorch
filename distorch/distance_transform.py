@@ -32,7 +32,7 @@ def euclidean_distance_transform(images: Tensor) -> Tensor:
     if use_pykeops:
         pos_i = LazyTensor(pos.reshape(1, n, 1, -1))
         pos_j = LazyTensor(pos.reshape(1, 1, n, -1))
-        pairwise_distances: LazyTensor = ((pos_i - pos_j) ** 2).sum(dim=3).sqrt()
+        pairwise_distances: LazyTensor = (pos_i - pos_j).norm2()
 
         images_float = images.to(torch.float)  # pykeops is not compatible with bool
         images_i = LazyTensor(images_float.reshape(b, n, 1, 1))
@@ -65,7 +65,7 @@ def surface_euclidean_distance_transform(images: Tensor) -> Tensor:
     for is_v in is_vertex:
         if use_pykeops:
             surface_vertices = LazyTensor(coords[is_v].reshape(1, -1, coords_ndim))
-            pairwise_distances: LazyTensor = (coords_i - surface_vertices).square().sum(dim=2).sqrt()
+            pairwise_distances: LazyTensor = (coords_i - surface_vertices).norm2()
             surface_dists.append(pairwise_distances.min(dim=1).reshape(*coords_shape))
         else:
             surface_vertices = coords[is_v].reshape(1, -1, coords_ndim)
