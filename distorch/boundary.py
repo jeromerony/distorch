@@ -44,7 +44,7 @@ def is_border_element(images: Tensor) -> Tensor:
                                  stride=1, padding=1).reshape_as(images)
         is_border = (num_neighbors < 9).logical_and_(images)
 
-    elif images.ndim > 4:  # 3d volumes (..., h, w, d) : all leading dimensions are batch
+    elif images.ndim >= 4:  # 3d volumes (..., h, w, d) : all leading dimensions are batch
         num_neighbors = F.conv3d(images.to(dtype).flatten(start_dim=0, end_dim=-4).unsqueeze(1),
                                  weight=weight.expand(1, 1, 3, 3, 3),
                                  stride=1, padding=1).reshape_as(images)
@@ -116,7 +116,7 @@ def is_surface_vertex(images: Tensor) -> Tensor:
             neighbors.squeeze_(0)
         is_vertex = (neighbors > 0).logical_and_(neighbors < 4)
 
-    elif images.ndim > 4:  # 3d volumes (..., h, w, d) : all leading dimensions are batch
+    elif images.ndim >= 4:  # 3d volumes (..., h, w, d) : all leading dimensions are batch
         neighbors = F.conv3d(images.to(dtype).flatten(start_dim=0, end_dim=-4).unsqueeze(1),
                              weight=weight.expand(1, 1, 2, 2, 2),
                              stride=1, padding=1).squeeze(1)
