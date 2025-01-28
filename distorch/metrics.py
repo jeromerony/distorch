@@ -3,8 +3,8 @@ from collections import defaultdict
 import torch
 from torch import Tensor
 
+from distorch.boundary import is_surface_vertex
 from distorch.distance_transform import euclidean_distance_transform
-from distorch.surface import is_surface_vertex
 
 use_pykeops = True
 try:

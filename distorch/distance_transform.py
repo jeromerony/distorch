@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from distorch.surface import is_surface_vertex
+from distorch.boundary import is_surface_vertex
 
 use_pykeops = True
 try:
