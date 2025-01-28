@@ -69,6 +69,14 @@ def surface_metrics(images1: Tensor,
     """
     assert images1.shape == images2.shape
     device = images1.device
+
+    ndim = images1.ndim
+    if ndim == 2:
+        images1, images2 = images1.unsqueeze(0), images1.unsqueeze(0)
+    elif ndim > 4:
+        batch_shape = images1.shape[:-3]
+        images1, images2 = images1.flatten(start_dim=0, end_dim=-4), images2.flatten(start_dim=0, end_dim=-4)
+
     is_vertex_1 = is_surface_vertex(images1)
     is_vertex_2 = is_surface_vertex(images2)
 
@@ -99,4 +107,10 @@ def surface_metrics(images1: Tensor,
         metrics[f'hausdorff_2_to_1_{quantile:.0%}'].append(torch.quantile(dist_2_to_1, q=quantile))
 
     metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
+
+    if ndim == 2:
+        metrics = {k: v.squeeze(0) for k, v in metrics.items()}
+    elif ndim > 4:
+        metrics = {k: v.unflatten(0, batch_shape) for k, v in metrics.items()}
+
     return metrics
