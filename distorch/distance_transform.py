@@ -76,6 +76,10 @@ def surface_euclidean_distance_transform(images: Tensor) -> Tensor:
     surface_dists = []
     for is_v in is_vertex:
 
+        if not is_v.any():
+            surface_dists.append(torch.full((), float('inf'), device=device).expand(*coords_shape))
+            continue
+
         if use_pykeops:
             surface_vertices = LazyTensor(coords[is_v].reshape(1, -1, coords_ndim))
             pairwise_distances: LazyTensor = (coords_i - surface_vertices).norm2()
