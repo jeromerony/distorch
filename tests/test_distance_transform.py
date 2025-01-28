@@ -6,6 +6,7 @@ from distorch import distance_transform
 # @formatter:off
 images_sqdistances = (
     ([[0] * 5] * 5, [[float('inf')] * 5] * 5),  # by convention, infinite distance for empty image
+    ([[1] * 5] * 5, [[0] * 5] * 5),
     ([[0, 0, 0, 0, 0],
       [0, 0, 0, 0, 0],
       [0, 0, 1, 0, 0],
@@ -70,6 +71,13 @@ def test_euclidean_distance_transform(image, sqdistances, device_type: str, use_
 # @formatter:off
 surface_images_sqdistances = (
     ([[0] * 5] * 5, [[float('inf')] * 6] * 6),  # by convention, infinite distance for empty image
+    ([[1] * 5] * 5,  # full image -> image border is considered surface
+     [[0, 0, 0, 0, 0, 0],
+      [0, 1, 1, 1, 1, 0],
+      [0, 1, 4, 4, 1, 0],
+      [0, 1, 4, 4, 1, 0],
+      [0, 1, 1, 1, 1, 0],
+      [0, 0, 0, 0, 0, 0]]),
     ([[0, 0, 0, 0, 0],
       [0, 0, 0, 0, 0],
       [0, 0, 1, 0, 0],
