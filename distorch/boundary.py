@@ -21,7 +21,7 @@ def is_border_element(images: Tensor) -> Tensor:
     Examples
     --------
     >>> import torch
-    >>> from distorch.surface import is_border_element
+    >>> from distorch.boundary import is_border_element
     >>> img = torch.tensor([[ True,  True,  True, False,  True,  True],
     ...                     [ True,  True,  True, False, False,  True],
     ...                     [ True,  True,  True,  True, False, False],
@@ -89,7 +89,7 @@ def is_surface_vertex(images: Tensor) -> Tensor:
     Examples
     --------
     >>> import torch
-    >>> from distorch.surface import is_surface_vertex
+    >>> from distorch.boundary import is_surface_vertex
     >>> img = torch.tensor([[False, False, False, False,  True,  True],
     ...                     [False,  True,  True, False, False,  True],
     ...                     [False,  True,  True,  True, False, False],
