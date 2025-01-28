@@ -34,9 +34,23 @@ def hausdorff(images1: Tensor, images2: Tensor, /) -> Tensor:
         Hausdorff distances between the batches of first and second sets.
 
     """
+    assert images1.shape == images2.shape
+    ndim = images1.ndim
+    if ndim == 2:
+        images1, images2 = images1.unsqueeze(0), images2.unsqueeze(0)
+    elif ndim > 4:
+        batch_shape = images1.shape[:-3]
+        images1, images2 = images1.flatten(start_dim=0, end_dim=-4), images2.flatten(start_dim=0, end_dim=-4)
+
     edt1 = euclidean_distance_transform(images1)
     edt2 = euclidean_distance_transform(images2)
     h = edt1.sub_(edt2).abs_().flatten(start_dim=1).amax(dim=1)
+
+    if ndim == 2:
+        h.squeeze_(0)
+    elif ndim > 4:
+        h = h.unflatten(0, batch_shape)
+
     return h
 
 
@@ -72,7 +86,7 @@ def surface_metrics(images1: Tensor,
 
     ndim = images1.ndim
     if ndim == 2:
-        images1, images2 = images1.unsqueeze(0), images1.unsqueeze(0)
+        images1, images2 = images1.unsqueeze(0), images2.unsqueeze(0)
     elif ndim > 4:
         batch_shape = images1.shape[:-3]
         images1, images2 = images1.flatten(start_dim=0, end_dim=-4), images2.flatten(start_dim=0, end_dim=-4)

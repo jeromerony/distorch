@@ -22,6 +22,9 @@ def euclidean_distance_transform(images: Tensor) -> Tensor:
     ndim = images.ndim
     if ndim == 2:
         images = images.unsqueeze(0)
+    if ndim > 4:
+        batch_shape = images.shape[:-3]
+        images = images.flatten(start_dim=0, end_dim=-4)
 
     b = images.size(0)
     spatial_dims = images.shape[1:]
@@ -46,11 +49,21 @@ def euclidean_distance_transform(images: Tensor) -> Tensor:
     dist = dist.reshape_as(images)
     if ndim == 2:
         dist.squeeze_(0)
+    elif ndim > 4:
+        dist = dist.unflatten(0, batch_shape)
+
     return dist
 
 
 def surface_euclidean_distance_transform(images: Tensor) -> Tensor:
     device = images.device
+    ndim = images.ndim
+    if ndim == 2:
+        images = images.unsqueeze(0)
+    if ndim > 4:
+        batch_shape = images.shape[:-3]
+        images = images.flatten(start_dim=0, end_dim=-4)
+
     is_vertex = is_surface_vertex(images)
 
     coords_shape = [s + 1 for s in images.shape[1:]]
@@ -74,4 +87,9 @@ def surface_euclidean_distance_transform(images: Tensor) -> Tensor:
             surface_dists.append(pairwise_distances.amin(dim=1).reshape(*coords_shape))
 
     surface_dists = torch.stack(surface_dists, dim=0)
+    if ndim == 2:
+        surface_dists.squeeze_(0)
+    elif ndim > 4:
+        surface_dists = surface_dists.unflatten(0, batch_shape)
+
     return surface_dists

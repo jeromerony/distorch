@@ -38,20 +38,20 @@ def is_border_element(images: Tensor) -> Tensor:
     dtype = torch.uint8 if device.type == 'cpu' else torch.float16
     weight = torch.ones((), dtype=dtype, device=images.device)
 
-    if images.ndim in (2, 3):  # 2D images
+    if images.ndim in (2, 3):  # 2d images
         num_neighbors = F.conv2d(images.to(dtype).reshape(-1, 1, *images.shape[-2:]),
                                  weight=weight.expand(1, 1, 3, 3),
                                  stride=1, padding=1).reshape_as(images)
         is_border = (num_neighbors < 9).logical_and_(images)
 
-    elif images.ndim == 4:  # 3d volumes
-        num_neighbors = F.conv3d(images.to(dtype).unsqueeze(1),
+    elif images.ndim > 4:  # 3d volumes (..., h, w, d) : all leading dimensions are batch
+        num_neighbors = F.conv3d(images.to(dtype).flatten(start_dim=0, end_dim=-4).unsqueeze(1),
                                  weight=weight.expand(1, 1, 3, 3, 3),
                                  stride=1, padding=1).reshape_as(images)
         is_border = (num_neighbors < 27).logical_and_(images)
 
     else:
-        raise ValueError(f'Input should be Tensor with 3 (2d image) or 4 (3d volume) dims: supplied {images.shape}')
+        raise ValueError(f'Input should be Tensor with at least 2 dimensions: supplied {images.shape}')
 
     return is_border
 
@@ -108,7 +108,7 @@ def is_surface_vertex(images: Tensor) -> Tensor:
     dtype = torch.uint8 if device.type == 'cpu' else torch.float16
     weight = torch.ones((), dtype=dtype, device=images.device)
 
-    if images.ndim in (2, 3):  # 2D images
+    if images.ndim in (2, 3):  # 2d images
         neighbors = F.conv2d(images.to(dtype).reshape(-1, 1, *images.shape[-2:]),
                              weight=weight.expand(1, 1, 2, 2),
                              stride=1, padding=1).squeeze(1)
@@ -116,13 +116,13 @@ def is_surface_vertex(images: Tensor) -> Tensor:
             neighbors.squeeze_(0)
         is_vertex = (neighbors > 0).logical_and_(neighbors < 4)
 
-    elif images.ndim == 4:  # 3d volumes
-        neighbors = F.conv3d(images.to(dtype).unsqueeze(1),
+    elif images.ndim > 4:  # 3d volumes (..., h, w, d) : all leading dimensions are batch
+        neighbors = F.conv3d(images.to(dtype).flatten(start_dim=0, end_dim=-4).unsqueeze(1),
                              weight=weight.expand(1, 1, 2, 2, 2),
                              stride=1, padding=1).squeeze(1)
-        is_vertex = (neighbors > 0).logical_and_(neighbors < 8)
+        is_vertex = (neighbors > 0).logical_and_(neighbors < 8).unflatten(0, images.shape[:-3])
 
     else:
-        raise ValueError(f'Input should be Tensor with 3 (2d image) or 4 (3d volume) dims: supplied {images.shape}')
+        raise ValueError(f'Input should be Tensor with at least 2 dimensions: supplied {images.shape}')
 
     return is_vertex
