@@ -19,7 +19,8 @@ except:
 
 def euclidean_distance_transform(images: Tensor,
                                  /,
-                                 element_size: Optional[tuple[int | float, ...]] = None) -> Tensor:
+                                 element_size: Optional[tuple[int | float, ...]] = None,
+                                 return_indices: bool = False) -> Tensor | tuple[Tensor, Tensor]:
     """
     Similar to `scipy.ndimage.distance_transform_edt`, but computes the distance away from the True value region.
 
@@ -71,11 +72,19 @@ def euclidean_distance_transform(images: Tensor,
         coords_j = LazyTensor(coords.reshape(1, 1, n, -1))
         pairwise_distances: LazyTensor = (coords_i - coords_j).norm2()
         compat = LazyTensor(torch.where(images, 0, max_dist).reshape(b, 1, n, 1))
-        dist = (pairwise_distances + compat).min(dim=2)
+        dist_compat = pairwise_distances + compat
+        if return_indices:
+            dist, indices = dist_compat.min_argmin(dim=2)
+        else:
+            dist = dist_compat.min(dim=2)
 
     else:
         pairwise_distances: Tensor = (coords.reshape(n, 1, -1) - coords.reshape(1, n, -1)).norm(p=2, dim=2)
-        dist = pairwise_distances.unsqueeze(0).masked_fill(~images.reshape(b, 1, n), max_dist).amin(dim=2)
+        dist_compat = pairwise_distances.unsqueeze(0).masked_fill(~images.reshape(b, 1, n), max_dist)
+        if return_indices:
+            dist, indices = dist_compat.min(dim=2)
+        else:
+            dist = dist_compat.amin(dim=2)
 
     dist = dist.reshape_as(images)
     if ndim == 2:
@@ -83,7 +92,15 @@ def euclidean_distance_transform(images: Tensor,
     elif ndim >= 4:
         dist = dist.unflatten(0, batch_shape)
 
-    return dist
+    if return_indices:
+        indices = indices.reshape_as(images)
+        if ndim == 2:
+            indices.squeeze_(0)
+        elif ndim >= 4:
+            indices = indices.unflatten(0, batch_shape)
+        return dist, indices
+    else:
+        return dist
 
 
 def surface_euclidean_distance_transform(images: Tensor,
