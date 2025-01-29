@@ -31,11 +31,17 @@ def euclidean_distance_transform(images: Tensor,
         True region.
     element_size : tuple of ints or floats
         Size of a single spatial element (pixel / voxel) along each dimension. Defaults to 1 for every dimension.
+    return_indices : bool
+        Optionally returns the indices of the closest True element, i.e. the one to which the distance is calculated.
+        The indices are flat for memory efficiency, meaning they index over all the spatial dimensions in C order.
+        To obtain unraveled indices, use `torch.unravel_index` with the appropriate shape.
 
     Returns
     -------
     dist : Tensor
         The calculated distance transform.
+    indices : Tensor
+        Flat indices of the closest True element, also known as the feature transform.
 
     Examples
     --------
