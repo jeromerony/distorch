@@ -1,10 +1,12 @@
 from collections import defaultdict
+from typing import Optional
 
 import torch
 from torch import Tensor
 
 from distorch.boundary import is_surface_vertex
 from distorch.distance_transform import euclidean_distance_transform
+from distorch.utils import generate_coordinates
 
 use_pykeops = True
 try:
@@ -16,7 +18,10 @@ except:
     use_pykeops = False
 
 
-def hausdorff(images1: Tensor, images2: Tensor, /) -> Tensor:
+def hausdorff(images1: Tensor,
+              images2: Tensor,
+              /,
+              element_size: Optional[tuple[int | float, ...]] = None) -> Tensor:
     """
     Computes the Hausdorff distances between batches of images (or 3d volumes). The images should be binary, where True
     indicates that an element (i.e. pixel/voxel) belongs to the set for which we want to compute the Hausdorff distance.
@@ -27,6 +32,8 @@ def hausdorff(images1: Tensor, images2: Tensor, /) -> Tensor:
         Boolean tensor indicating the membership to the first set.
     images2
         Boolean tensor indicating the membership to the second set.
+    element_size : tuple of ints or floats
+        Size of a single spatial element (pixel / voxel) along each dimension. Defaults to 1 for every dimension.
 
     Returns
     -------
@@ -42,8 +49,8 @@ def hausdorff(images1: Tensor, images2: Tensor, /) -> Tensor:
         batch_shape = images1.shape[:-3]
         images1, images2 = images1.flatten(start_dim=0, end_dim=-4), images2.flatten(start_dim=0, end_dim=-4)
 
-    edt1 = euclidean_distance_transform(images1)
-    edt2 = euclidean_distance_transform(images2)
+    edt1 = euclidean_distance_transform(images1, element_size=element_size)
+    edt2 = euclidean_distance_transform(images2, element_size=element_size)
     h = edt1.sub_(edt2).abs_().flatten(start_dim=1).amax(dim=1)
 
     if ndim == 2:
@@ -57,7 +64,8 @@ def hausdorff(images1: Tensor, images2: Tensor, /) -> Tensor:
 def surface_metrics(images1: Tensor,
                     images2: Tensor,
                     /,
-                    quantile: float | Tensor = 0.95) -> dict[str, Tensor]:
+                    quantile: float | Tensor = 0.95,
+                    element_size: Optional[tuple[int | float, ...]] = None) -> dict[str, Tensor]:
     """
     Computes metrics between the surfaces of two sets. These metrics include the surface Hausdorff distance, the
     directed average surface distances and the quantile of the directed surface distances (also called Hausdorff 95%).
@@ -74,6 +82,8 @@ def surface_metrics(images1: Tensor,
         Boolean tensor indicating the membership to the second set.
     quantile : float or Tensor
         Argument passed to the `torch.quantile` function.
+    element_size : tuple of ints or floats
+        Size of a single spatial element (pixel / voxel) along each dimension. Defaults to 1 for every dimension.
 
     Returns
     -------
@@ -96,8 +106,7 @@ def surface_metrics(images1: Tensor,
 
     coords_shape = [s + 1 for s in images1.shape[1:]]
     coords_ndim = len(coords_shape)
-    aranges = [torch.arange(s, device=device, dtype=torch.float) for s in coords_shape]
-    coords = torch.stack(torch.meshgrid(*aranges, indexing='ij'), dim=-1)
+    coords = generate_coordinates(coords_shape, device=device, element_size=element_size)
 
     metrics = defaultdict(list)
     for is_v_1, is_v_2 in zip(is_vertex_1, is_vertex_2):

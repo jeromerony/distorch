@@ -1,8 +1,11 @@
+from typing import Optional
+
 import numpy as np
 import torch
 from torch import Tensor
 
 from distorch.boundary import is_surface_vertex
+from distorch.utils import generate_coordinates
 
 use_pykeops = True
 try:
@@ -14,7 +17,9 @@ except:
     use_pykeops = False
 
 
-def euclidean_distance_transform(images: Tensor) -> Tensor:
+def euclidean_distance_transform(images: Tensor,
+                                 /,
+                                 element_size: Optional[tuple[int | float, ...]] = None) -> Tensor:
     """
     Similar to `scipy.ndimage.distance_transform_edt`, but computes the distance away from the True value region.
     TODO: add comprehensive docstring
@@ -31,19 +36,17 @@ def euclidean_distance_transform(images: Tensor) -> Tensor:
     max_dist = float('inf')  # by convention, infinite distance for empty image
     n = int(np.prod(spatial_dims))  # number of elements (i.e. pixels/voxels)
     device = images.device
-
-    aranges = (torch.arange(s, device=device, dtype=torch.float) for s in spatial_dims)
-    pos = torch.stack(torch.meshgrid(*aranges, indexing='ij'), dim=-1)
+    coords = generate_coordinates(spatial_dims, device=device, element_size=element_size)
 
     if use_pykeops:
-        pos_i = LazyTensor(pos.reshape(1, n, 1, -1))
-        pos_j = LazyTensor(pos.reshape(1, 1, n, -1))
-        pairwise_distances: LazyTensor = (pos_i - pos_j).norm2()
+        coords_i = LazyTensor(coords.reshape(1, n, 1, -1))
+        coords_j = LazyTensor(coords.reshape(1, 1, n, -1))
+        pairwise_distances: LazyTensor = (coords_i - coords_j).norm2()
         compat = LazyTensor(torch.where(images, 0, max_dist).reshape(b, 1, n, 1))
         dist = (pairwise_distances + compat).min(dim=2)
 
     else:
-        pairwise_distances: Tensor = (pos.reshape(n, 1, -1) - pos.reshape(1, n, -1)).norm(p=2, dim=2)
+        pairwise_distances: Tensor = (coords.reshape(n, 1, -1) - coords.reshape(1, n, -1)).norm(p=2, dim=2)
         dist = pairwise_distances.unsqueeze(0).masked_fill(~images.reshape(b, 1, n), max_dist).amin(dim=2)
 
     dist = dist.reshape_as(images)
@@ -55,7 +58,9 @@ def euclidean_distance_transform(images: Tensor) -> Tensor:
     return dist
 
 
-def surface_euclidean_distance_transform(images: Tensor) -> Tensor:
+def surface_euclidean_distance_transform(images: Tensor,
+                                         /,
+                                         element_size: Optional[tuple[int | float, ...]] = None) -> Tensor:
     device = images.device
     ndim = images.ndim
     if ndim == 2:
@@ -68,8 +73,7 @@ def surface_euclidean_distance_transform(images: Tensor) -> Tensor:
 
     coords_shape = [s + 1 for s in images.shape[1:]]
     coords_ndim = len(coords_shape)
-    aranges = [torch.arange(s, device=device, dtype=torch.float) for s in coords_shape]
-    coords = torch.stack(torch.meshgrid(*aranges, indexing='ij'), dim=-1)
+    coords = generate_coordinates(coords_shape, device=device, element_size=element_size)
     if use_pykeops:
         coords_i = LazyTensor(coords.reshape(-1, 1, coords_ndim))
 
