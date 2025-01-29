@@ -22,7 +22,35 @@ def euclidean_distance_transform(images: Tensor,
                                  element_size: Optional[tuple[int | float, ...]] = None) -> Tensor:
     """
     Similar to `scipy.ndimage.distance_transform_edt`, but computes the distance away from the True value region.
-    TODO: add comprehensive docstring
+
+    Parameters
+    ----------
+    images : Tensor
+        Boolean image(s)/volume(s) for which to perform the distance transform. The distance is computed away from the
+        True region.
+    element_size : tuple of ints or floats
+        Size of a single spatial element (pixel / voxel) along each dimension. Defaults to 1 for every dimension.
+
+    Returns
+    -------
+    dist : Tensor
+        The calculated distance transform.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from distorch.distance_transform import euclidean_distance_transform
+    >>> img = torch.tensor([[0, 0, 0, 0, 0],
+    ...                     [0, 0, 0, 1, 0],
+    ...                     [0, 1, 1, 0, 0],
+    ...                     [0, 1, 0, 0, 0],
+    ...                     [0, 0, 0, 0, 0]], dtype=torch.bool)
+    >>> euclidean_distance_transform(img)
+    tensor([[2.2361, 2.0000, 1.4142, 1.0000, 1.4142],
+            [1.4142, 1.0000, 1.0000, 0.0000, 1.0000],
+            [1.0000, 0.0000, 0.0000, 1.0000, 1.4142],
+            [1.0000, 0.0000, 1.0000, 1.4142, 2.2361],
+            [1.4142, 1.0000, 1.4142, 2.2361, 2.8284]])
     """
     ndim = images.ndim
     if ndim == 2:
