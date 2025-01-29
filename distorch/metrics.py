@@ -4,18 +4,13 @@ from typing import Optional
 import torch
 from torch import Tensor
 
+from distorch import use_pykeops
 from distorch.boundary import is_surface_vertex
 from distorch.distance_transform import euclidean_distance_transform
 from distorch.utils import generate_coordinates
 
-use_pykeops = True
-try:
+if use_pykeops:
     from pykeops.torch import LazyTensor
-except:
-    import warnings
-
-    warnings.warn('PyKeops could not be imported, this will result in high memory usage.')
-    use_pykeops = False
 
 
 def hausdorff(images1: Tensor,
