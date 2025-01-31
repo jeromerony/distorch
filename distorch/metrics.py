@@ -42,7 +42,7 @@ def set_metrics(set1: Tensor, set2: Tensor,
         if distorch.use_pykeops:
             dist_1_to_2 = LazyTensor(elem_1_not_2.unsqueeze(1)).sqdist(LazyTensor(elem_2.unsqueeze(0))).min(dim=1)
             dist_2_to_1 = LazyTensor(elem_2_not_1.unsqueeze(1)).sqdist(LazyTensor(elem_1.unsqueeze(0))).min(dim=1)
-            dist_1_to_2.sqrt_(), dist_2_to_1
+            dist_1_to_2.sqrt_(), dist_2_to_1.sqrt_()
 
         else:
             dist_1_to_2 = F.pairwise_distance(elem_1_not_2, elem_2).amin(dim=1)
