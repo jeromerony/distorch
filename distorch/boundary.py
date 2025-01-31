@@ -36,19 +36,22 @@ def is_border_element(images: Tensor) -> Tensor:
     """
     device = images.device
     dtype = torch.uint8 if device.type == 'cpu' else torch.float16
-    weight = torch.ones((), dtype=dtype, device=images.device)
 
     if images.ndim in (2, 3):  # 2d images
+        weight = torch.tensor([[0, 1, 0], [1, 0, 1], [0, 1, 0]], dtype=dtype, device=images.device)
         num_neighbors = F.conv2d(images.to(dtype).reshape(-1, 1, *images.shape[-2:]),
-                                 weight=weight.expand(1, 1, 3, 3),
+                                 weight=weight.view(1, 1, 3, 3),
                                  stride=1, padding=1).reshape_as(images)
-        is_border = (num_neighbors < 9).logical_and_(images)
+        is_border = (num_neighbors < 4).logical_and_(images)
 
     elif images.ndim >= 4:  # 3d volumes (..., h, w, d) : all leading dimensions are batch
+        weight = torch.tensor([[[0, 0, 0], [0, 1, 0], [0, 0, 0]],
+                               [[0, 1, 0], [1, 0, 1], [0, 1, 0]],
+                               [[0, 0, 0], [0, 1, 0], [0, 0, 0]]], dtype=dtype, device=images.device)
         num_neighbors = F.conv3d(images.to(dtype).flatten(start_dim=0, end_dim=-4).unsqueeze(1),
-                                 weight=weight.expand(1, 1, 3, 3, 3),
+                                 weight=weight.view(1, 1, 3, 3, 3),
                                  stride=1, padding=1).reshape_as(images)
-        is_border = (num_neighbors < 27).logical_and_(images)
+        is_border = (num_neighbors < 6).logical_and_(images)
 
     else:
         raise ValueError(f'Input should be Tensor with at least 2 dimensions: supplied {images.shape}')
