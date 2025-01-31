@@ -3,12 +3,13 @@ from typing import Optional
 
 import torch
 from torch import Tensor
+from torch.nn import functional as F
 
-from distorch import use_pykeops
+import distorch
 from distorch.boundary import is_border_element, is_surface_vertex
 from distorch.utils import generate_coordinates
 
-if use_pykeops:
+if distorch.use_pykeops:
     from pykeops.torch import LazyTensor
 
 
@@ -33,24 +34,21 @@ def set_metrics(set1: Tensor, set2: Tensor,
 
     metrics = defaultdict(list)
     for s1, s2 in zip(set1, set2):
-        elem_1 = coords[s1].view(-1, 1, coords_ndim)
-        elem_2 = coords[s2].view(1, -1, coords_ndim)
+        elem_1 = coords[s1].view(-1, coords_ndim)
+        elem_2 = coords[s2].view(-1, coords_ndim)
+        elem_1_not_2 = coords[s2.logical_not().logical_and_(s1)].view(-1, coords_ndim)
+        elem_2_not_1 = coords[s1.logical_not().logical_and_(s2)].view(-1, coords_ndim)
 
-        if use_pykeops:
-            pairwise_distances = (LazyTensor(elem_1) - LazyTensor(elem_2)).norm2()
-            dist_1_to_2 = pairwise_distances.min(dim=1)
-            dist_2_to_1 = pairwise_distances.min(dim=0)
+        if distorch.use_pykeops:
+            dist_1_to_2 = LazyTensor(elem_1_not_2.unsqueeze(1)).sqdist(LazyTensor(elem_2.unsqueeze(0))).min(dim=1)
+            dist_2_to_1 = LazyTensor(elem_2_not_1.unsqueeze(1)).sqdist(LazyTensor(elem_1.unsqueeze(0))).min(dim=1)
+            dist_1_to_2.sqrt_(), dist_2_to_1
 
         else:
-            pairwise_distances = (elem_1 - elem_2).norm(p=2, dim=2)
-            dist_1_to_2 = pairwise_distances.amin(dim=1)
-            dist_2_to_1 = pairwise_distances.amin(dim=0)
+            dist_1_to_2 = F.pairwise_distance(elem_1_not_2, elem_2).amin(dim=1)
+            dist_2_to_1 = F.pairwise_distance(elem_2_not_1, elem_1).amin(dim=1)
 
         metrics['hausdorff'].append(torch.maximum(dist_1_to_2.max(), dist_2_to_1.max()))
-        metrics['average_distance_1_to_2'].append(dist_1_to_2.mean())
-        metrics['average_distance_2_to_1'].append(dist_2_to_1.mean())
-        metrics[f'distance_{quantile:.0%}_1_to_2'].append(torch.quantile(dist_1_to_2, q=quantile))
-        metrics[f'distance_{quantile:.0%}_2_to_1'].append(torch.quantile(dist_2_to_1, q=quantile))
 
     metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
 
