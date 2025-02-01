@@ -9,7 +9,11 @@ from distorch.boundary import is_border_element, is_surface_vertex
 from distorch.utils import generate_coordinates
 
 if distorch.use_pykeops:
-    from pykeops.torch import LazyTensor
+    from pykeops.torch import Vi, Vj
+else:
+    import warnings
+
+    warnings.warn('PyKeops could not be imported, this will result in high memory usage and/or out-of-memory crash.')
 
 
 def set_metrics(set1: Tensor, set2: Tensor,
@@ -50,7 +54,6 @@ def set_metrics(set1: Tensor, set2: Tensor,
             dist_2_to_1 = torch.cdist(elem_2_not_1, elem_1).amin(dim=1)
 
         metrics['hausdorff'].append(torch.maximum(dist_1_to_2.max(), dist_2_to_1.max()))
-
     metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
 
     if ndim == 2:
