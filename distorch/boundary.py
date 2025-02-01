@@ -30,7 +30,7 @@ def is_border_element(images: Tensor) -> Tensor:
     >>> is_border_element(img)
     tensor([[ True,  True,  True, False,  True,  True],
             [ True, False,  True, False, False,  True],
-            [ True, False,  True,  True, False, False],
+            [ True, False, False,  True, False, False],
             [ True,  True,  True, False, False, False],
             [False, False, False, False, False,  True]])
     """
