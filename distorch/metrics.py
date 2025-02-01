@@ -43,10 +43,8 @@ def set_metrics(set1: Tensor, set2: Tensor,
         elem_2_not_1 = coords[s1.logical_not().logical_and_(s2)].view(-1, coords_ndim)
 
         if distorch.use_pykeops:
-            elem_1.unsqueeze_(0), elem_2.unsqueeze_(0)
-            elem_1_not_2.unsqueeze_(1), elem_2_not_1.unsqueeze_(1)
-            dist_1_to_2 = LazyTensor(elem_1_not_2).sqdist(LazyTensor(elem_2)).min(dim=1)
-            dist_2_to_1 = LazyTensor(elem_2_not_1).sqdist(LazyTensor(elem_1)).min(dim=1)
+            dist_1_to_2 = Vi(elem_1_not_2).sqdist(Vj(elem_2)).min(dim=1)
+            dist_2_to_1 = Vi(elem_2_not_1).sqdist(Vj(elem_1)).min(dim=1)
             dist_1_to_2.sqrt_(), dist_2_to_1.sqrt_()
 
         else:
