@@ -16,7 +16,8 @@ else:
     warnings.warn('PyKeops could not be imported, this will result in high memory usage and/or out-of-memory crash.')
 
 
-def set_metrics(set1: Tensor, set2: Tensor,
+def set_metrics(set1: Tensor,
+                set2: Tensor,
                 /,
                 quantile: float | Tensor = 0.95,
                 element_size: Optional[tuple[int | float, ...]] = None) -> dict[str, Tensor]:
