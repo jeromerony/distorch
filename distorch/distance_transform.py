@@ -22,8 +22,7 @@ def cucim_edt(images: Tensor, /, element_size=None) -> Tensor:
 
 def euclidean_distance_transform(images: Tensor,
                                  /,
-                                 element_size: Optional[tuple[int | float, ...]] = None,
-                                 return_indices: bool = False) -> Tensor | tuple[Tensor, Tensor]:
+                                 element_size: Optional[tuple[int | float, ...]] = None) -> Tensor:
     """
     Similar to `scipy.ndimage.distance_transform_edt`, but computes the distance away from the True value region.
 
