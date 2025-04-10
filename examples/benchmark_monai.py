@@ -16,8 +16,7 @@ if __name__ == '__main__':
     # gt = torch.from_numpy(np.asarray(nibabel.load('data/9996098_R_segmentation.nii.gz').dataobj)).to(dtype=torch.long)
     # prediction = torch.from_numpy(np.asarray(nibabel.load('data/9996098.nii.gz').dataobj)).to(dtype=torch.long)
     gt = torch.from_numpy(np.asarray(nibabel.load('data/patient02_gt.nii.gz').dataobj)).to(dtype=torch.long)
-    prediction = torch.from_numpy(np.asarray(nibabel.load('data/patient02_prediction.nii.gz').dataobj)).to(
-        dtype=torch.long)
+    prediction = torch.from_numpy(np.asarray(nibabel.load('data/patient02_prediction.nii.gz').dataobj)).to(dtype=torch.long)
     k = 5
 
     gt_onehot = F.one_hot(gt.to(device), num_classes=k).movedim(-1, 0).bool().contiguous()
@@ -44,7 +43,7 @@ if __name__ == '__main__':
                                                  include_background=True)
     pprint(monai_hausdorff)
     print(f'Monai max memory: {torch.cuda.max_memory_allocated() / 2 ** 30:.2f} GiB')
-    bench = benchmark(compute_average_surface_distance, (prediction_onehot.unsqueeze(0), gt_onehot.unsqueeze(0)),
+    bench = benchmark(compute_hausdorff_distance, (prediction_onehot.unsqueeze(0), gt_onehot.unsqueeze(0)),
                       n_repeat=5)
     if device.type == 'cuda':
         print(f'Monai GPU: {np.mean(bench.gpu_times):.4g} ± {np.std(bench.gpu_times):.4g}')
