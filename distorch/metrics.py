@@ -19,8 +19,10 @@ else:
 def set_metrics(set1: Tensor,
                 set2: Tensor,
                 /,
-                quantile: float | Tensor = 0.95,
-                element_size: Optional[tuple[int | float, ...]] = None) -> dict[str, Tensor]:
+                element_size: Optional[tuple[int | float, ...]] = None,
+                compute_assd: bool = False,
+                compute_quantile: bool = False,
+                quantile: float | Tensor = 0.95) -> dict[str, Tensor]:
     assert set1.shape == set2.shape
     assert set1.dtype == torch.bool
     assert set2.dtype == torch.bool
@@ -53,10 +55,12 @@ def set_metrics(set1: Tensor,
             dist_2_to_1 = torch.cdist(elem_2_not_1, elem_1).amin(dim=1)
 
         metrics['hausdorff'].append(torch.maximum(dist_1_to_2.max(), dist_2_to_1.max()))
-        metrics['average_distance_1_to_2'].append(dist_1_to_2.mean())
-        metrics['average_distance_2_to_1'].append(dist_2_to_1.mean())
-        metrics[f'distance_{quantile:.0%}_1_to_2'].append(torch.quantile(dist_1_to_2, q=quantile))
-        metrics[f'distance_{quantile:.0%}_2_to_1'].append(torch.quantile(dist_2_to_1, q=quantile))
+        if compute_assd:
+            metrics['average_distance_1_to_2'].append(dist_1_to_2.mean())
+            metrics['average_distance_2_to_1'].append(dist_2_to_1.mean())
+        if compute_quantile:
+            metrics[f'distance_{quantile:.0%}_1_to_2'].append(torch.quantile(dist_1_to_2, q=quantile))
+            metrics[f'distance_{quantile:.0%}_2_to_1'].append(torch.quantile(dist_2_to_1, q=quantile))
     metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
 
     if ndim == 2:
