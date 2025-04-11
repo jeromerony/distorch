@@ -52,13 +52,13 @@ def set_metrics(set1: Tensor,
         elem_2_not_1 = coords[s1.logical_not().logical_and_(s2)].view(-1, coords_ndim)
 
         if distorch.use_pykeops:
-            dist_1_to_2 = zero if elem_1_not_2.size(0) < 1 else Vi(elem_1_not_2).sqdist(Vj(elem_2)).min(dim=1)
-            dist_2_to_1 = zero if elem_2_not_1.size(0) < 1 else Vi(elem_2_not_1).sqdist(Vj(elem_1)).min(dim=1)
-            dist_1_to_2, dist_2_to_1 = dist_1_to_2.sqrt(), dist_2_to_1.sqrt()
+            dist_1_to_2 = Vi(elem_1_not_2).sqdist(Vj(elem_2)).min(dim=1)
+            dist_2_to_1 = Vi(elem_2_not_1).sqdist(Vj(elem_1)).min(dim=1)
+            dist_1_to_2.sqrt_(), dist_2_to_1.sqrt_()
 
         else:
-            dist_1_to_2 = zero if elem_1_not_2.size(0) < 1 else torch.cdist(elem_1_not_2, elem_2).amin(dim=1)
-            dist_2_to_1 = zero if elem_2_not_1.size(0) < 1 else torch.cdist(elem_2_not_1, elem_1).amin(dim=1)
+            dist_1_to_2 = torch.cdist(elem_1_not_2, elem_2).amin(dim=1)
+            dist_2_to_1 = torch.cdist(elem_2_not_1, elem_1).amin(dim=1)
 
         hd = torch.maximum(dist_1_to_2.max(), dist_2_to_1.max())
         metrics['hausdorff'].append(hd)
