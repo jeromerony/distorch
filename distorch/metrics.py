@@ -35,21 +35,30 @@ def set_metrics(set1: Tensor,
     coords_ndim = len(coords_shape)
     coords = generate_coordinates(coords_shape, device=set1.device, element_size=element_size)
 
+    zero = torch.tensor(0., device=set1.device)
+    nan = torch.tensor(float('nan'), device=set1.device)
     metrics = defaultdict(list)
     for s1, s2 in zip(set1, set2):
         elem_1 = coords[s1].view(-1, coords_ndim)
         elem_2 = coords[s2].view(-1, coords_ndim)
+        if elem_1.size(0) < 1 or elem_2.size(0) < 1:  # one set is empty
+            metrics['hausdorff'].append(nan)
+            continue
+        elif torch.equal(elem_1, elem_2):  # both are non-empty but equal
+            metrics['hausdorff'].append(zero)
+            continue
+
         elem_1_not_2 = coords[s2.logical_not().logical_and_(s1)].view(-1, coords_ndim)
         elem_2_not_1 = coords[s1.logical_not().logical_and_(s2)].view(-1, coords_ndim)
 
         if distorch.use_pykeops:
-            dist_1_to_2 = Vi(elem_1_not_2).sqdist(Vj(elem_2)).min(dim=1)
-            dist_2_to_1 = Vi(elem_2_not_1).sqdist(Vj(elem_1)).min(dim=1)
-            dist_1_to_2.sqrt_(), dist_2_to_1.sqrt_()
+            dist_1_to_2 = zero if elem_1_not_2.size(0) < 1 else Vi(elem_1_not_2).sqdist(Vj(elem_2)).min(dim=1)
+            dist_2_to_1 = zero if elem_2_not_1.size(0) < 1 else Vi(elem_2_not_1).sqdist(Vj(elem_1)).min(dim=1)
+            dist_1_to_2, dist_2_to_1 = dist_1_to_2.sqrt(), dist_2_to_1.sqrt()
 
         else:
-            dist_1_to_2 = torch.cdist(elem_1_not_2, elem_2).amin(dim=1)
-            dist_2_to_1 = torch.cdist(elem_2_not_1, elem_1).amin(dim=1)
+            dist_1_to_2 = zero if elem_1_not_2.size(0) < 1 else torch.cdist(elem_1_not_2, elem_2).amin(dim=1)
+            dist_2_to_1 = zero if elem_2_not_1.size(0) < 1 else torch.cdist(elem_2_not_1, elem_1).amin(dim=1)
 
         hd = torch.maximum(dist_1_to_2.max(), dist_2_to_1.max())
         metrics['hausdorff'].append(hd)
