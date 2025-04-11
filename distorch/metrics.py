@@ -67,11 +67,7 @@ def set_metrics(set1: Tensor,
     return metrics
 
 
-def border_metrics(images1: Tensor,
-                   images2: Tensor,
-                   /,
-                   quantile: float | Tensor = 0.95,
-                   element_size: Optional[tuple[int | float, ...]] = None) -> dict[str, Tensor]:
+def border_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> dict[str, Tensor]:
     """
     Computes the Hausdorff distances between batches of images (or 3d volumes). The images should be binary, where True
     indicates that an element (i.e. pixel/voxel) belongs to the set for which we want to compute the Hausdorff distance.
@@ -92,16 +88,12 @@ def border_metrics(images1: Tensor,
 
     """
     set1, set2 = is_border_element(images1), is_border_element(images2)
-    metrics = set_metrics(set1, set2, quantile=quantile, element_size=element_size)
+    metrics = set_metrics(set1, set2, **kwargs)
     metrics = {f'border_{k}': v for k, v in metrics.items()}
     return metrics
 
 
-def surface_metrics(images1: Tensor,
-                    images2: Tensor,
-                    /,
-                    quantile: float | Tensor = 0.95,
-                    element_size: Optional[tuple[int | float, ...]] = None) -> dict[str, Tensor]:
+def surface_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> dict[str, Tensor]:
     """
     Computes metrics between the surfaces of two sets. These metrics include the surface Hausdorff distance, the
     directed average surface distances and the quantile of the directed surface distances (also called Hausdorff 95%).
@@ -128,6 +120,6 @@ def surface_metrics(images1: Tensor,
 
     """
     set1, set2 = is_surface_vertex(images1), is_surface_vertex(images2)
-    metrics = set_metrics(set1, set2, quantile=quantile, element_size=element_size)
+    metrics = set_metrics(set1, set2, **kwargs)
     metrics = {f'surface_{k}': v for k, v in metrics.items()}
     return metrics
