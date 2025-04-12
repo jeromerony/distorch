@@ -81,15 +81,13 @@ def border_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> dict[str, T
     ----------
     images1 : Tensor
         Boolean tensor indicating the membership to the first set.
-    images2
+    images2 : Tensor
         Boolean tensor indicating the membership to the second set.
-    element_size : tuple of ints or floats
-        Size of a single spatial element (pixel / voxel) along each dimension. Defaults to 1 for every dimension.
 
     Returns
     -------
-    h : Tensor
-        Hausdorff distances between the batches of first and second sets.
+    metrics : dict[str, Tensor]
+        Dictionary of metrics where each entry correspond to a metric for all the element in the batch.
 
     """
     set1, set2 = is_border_element(images1), is_border_element(images2)
@@ -111,12 +109,8 @@ def surface_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> dict[str, 
     ----------
     images1 : Tensor
         Boolean tensor indicating the membership to the first set.
-    images2
+    images2 : Tensor
         Boolean tensor indicating the membership to the second set.
-    quantile : float or Tensor
-        Argument passed to the `torch.quantile` function.
-    element_size : tuple of ints or floats
-        Size of a single spatial element (pixel / voxel) along each dimension. Defaults to 1 for every dimension.
 
     Returns
     -------
