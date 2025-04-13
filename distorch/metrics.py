@@ -10,10 +10,14 @@ from distorch.utils import generate_coordinates
 
 if distorch.use_pykeops:
     from pykeops.torch import Vi, Vj
+elif distorch.use_triton:
+    from distorch.minimum_pairwise_distance import min_sqdist
 else:
     import warnings
 
-    warnings.warn('PyKeops could not be imported, this will result in high memory usage and/or out-of-memory crash.')
+    warnings.warn(
+        'PyKeops or Triton could not be imported, this will result in high memory usage and/or out-of-memory crash.'
+    )
 
 
 def set_metrics(set1: Tensor,
@@ -54,13 +58,16 @@ def set_metrics(set1: Tensor,
         if distorch.use_pykeops:
             dist_1_to_2 = Vi(elem_1_not_2).sqdist(Vj(elem_2)).min(dim=1)
             dist_2_to_1 = Vi(elem_2_not_1).sqdist(Vj(elem_1)).min(dim=1)
-            dist_1_to_2.sqrt_(), dist_2_to_1.sqrt_()
 
-        else:
-            dist_1_to_2 = torch.cdist(elem_1_not_2, elem_2).amin(dim=1)
-            dist_2_to_1 = torch.cdist(elem_2_not_1, elem_1).amin(dim=1)
+        elif distorch.use_triton:
+            dist_1_to_2 = min_sqdist(elem_1_not_2, elem_2)
+            dist_2_to_1 = min_sqdist(elem_2_not_1, elem_1)
 
-        hd = torch.maximum(dist_1_to_2.max(), dist_2_to_1.max())
+        else:  # defaults to native
+            dist_1_to_2 = torch.cdist(elem_1_not_2, elem_2).amin(dim=1).square_()
+            dist_2_to_1 = torch.cdist(elem_2_not_1, elem_1).amin(dim=1).square_()
+
+        hd = torch.maximum(dist_1_to_2.max(), dist_2_to_1.max()).sqrt_()
         metrics['hausdorff'].append(hd)
     metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
 
