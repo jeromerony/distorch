@@ -8,10 +8,11 @@ import distorch
 from distorch.boundary import is_border_element, is_surface_vertex
 from distorch.utils import generate_coordinates
 
+if distorch.use_triton:
+    from distorch.minimum_pairwise_distance import min_sqdist
+
 if distorch.use_pykeops:
     from pykeops.torch import Vi, Vj
-elif distorch.use_triton:
-    from distorch.minimum_pairwise_distance import min_sqdist
 else:
     import warnings
 
