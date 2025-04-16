@@ -25,7 +25,8 @@ def _minimum_sqdistances_2d(x1_ptr,
     sqdist = dx * dx + dy * dy
     min_sqdist = tl.min(sqdist, axis=0)
 
-    tl.atomic_min(min_dist_ptr + row_idx, min_sqdist)
+    result_ptr = min_dist_ptr + row_idx * tl.num_programs(1) + tl.program_id(1)
+    tl.store(result_ptr, min_sqdist)
 
 
 @triton.jit
@@ -53,18 +54,19 @@ def _minimum_sqdistances_3d(x1_ptr,
     sqdist = dx * dx + dy * dy + dz * dz
     min_sqdist = tl.min(sqdist, axis=0)
 
-    tl.atomic_min(min_dist_ptr + row_idx, min_sqdist)
+    result_ptr = min_dist_ptr + row_idx * tl.num_programs(1) + tl.program_id(1)
+    tl.store(result_ptr, min_sqdist)
 
 
 def min_sqdist(x1: Tensor, x2: Tensor, BLOCK_SIZE: int = 2048) -> Tensor:
     d = x1.size(1)
     assert d == x2.size(1)
     n, m = x1.size(0), x2.size(0)
-    min_distances = x1.new_full(size=(n,), fill_value=float('inf'))
     BLOCK_SIZE = min(BLOCK_SIZE, triton.next_power_of_2(m))
     grid_cols = triton.cdiv(m, BLOCK_SIZE)
+    min_distances = x1.new_empty(size=(n, grid_cols))
     if d == 2:
         _minimum_sqdistances_2d[(n, grid_cols)](x1, x2, min_distances, m, BLOCK_SIZE=BLOCK_SIZE)
     if d == 3:
         _minimum_sqdistances_3d[(n, grid_cols)](x1, x2, min_distances, m, BLOCK_SIZE=BLOCK_SIZE)
-    return min_distances
+    return min_distances.amin(dim=1)
