@@ -25,10 +25,10 @@ else:
 @dataclass
 class DistanceMetrics:
     Hausdorff: Tensor
-    Hausdorff95_1_to_2: Tensor = None
-    Hausdorff95_2_to_1: Tensor = None
-    AverageSurfaceDistance_1_to_2: Tensor = None
-    AverageSurfaceDistance_2_to_1: Tensor = None
+    Hausdorff95_1_to_2: Tensor
+    Hausdorff95_2_to_1: Tensor
+    AverageSurfaceDistance_1_to_2: Tensor
+    AverageSurfaceDistance_2_to_1: Tensor
 
 
 def set_metrics(set1: Tensor,
