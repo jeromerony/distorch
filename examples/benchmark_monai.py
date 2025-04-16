@@ -16,7 +16,8 @@ if __name__ == '__main__':
     # gt = torch.from_numpy(np.asarray(nibabel.load('data/9996098_R_segmentation.nii.gz').dataobj)).to(dtype=torch.long)
     # prediction = torch.from_numpy(np.asarray(nibabel.load('data/9996098.nii.gz').dataobj)).to(dtype=torch.long)
     gt = torch.from_numpy(np.asarray(nibabel.load('data/patient02_gt.nii.gz').dataobj)).to(dtype=torch.long)
-    prediction = torch.from_numpy(np.asarray(nibabel.load('data/patient02_prediction.nii.gz').dataobj)).to(dtype=torch.long)
+    prediction = torch.from_numpy(np.asarray(nibabel.load('data/patient02_prediction.nii.gz').dataobj)).to(
+        dtype=torch.long)
     k = 5
 
     gt_onehot = F.one_hot(gt.to(device), num_classes=k).movedim(-1, 0).bool().contiguous()

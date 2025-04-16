@@ -1,4 +1,4 @@
-from collections import defaultdict
+import dataclasses
 from dataclasses import dataclass
 from typing import Optional
 
@@ -53,15 +53,15 @@ def set_metrics(set1: Tensor,
 
     zero = torch.tensor(0., device=set1.device)
     nan = torch.tensor(float('nan'), device=set1.device)
-    metrics = defaultdict(list)
+    metrics = {f.name: [] for f in dataclasses.fields(DistanceMetrics)}
     for s1, s2 in zip(set1, set2):
         elem_1 = coords[s1].view(-1, coords_ndim)
         elem_2 = coords[s2].view(-1, coords_ndim)
         if elem_1.size(0) < 1 or elem_2.size(0) < 1:  # one set is empty
-            metrics['Hausdorff'].append(nan)
+            [m.append(nan) for m in metrics.values()]
             continue
         elif torch.equal(elem_1, elem_2):  # both are non-empty but equal
-            metrics['Hausdorff'].append(zero)
+            [m.append(zero) for m in metrics.values()]
             continue
 
         elem_1_not_2 = coords[s2.logical_not().logical_and_(s1)].view(-1, coords_ndim)
