@@ -70,3 +70,28 @@ def min_sqdist(x1: Tensor, x2: Tensor, BLOCK_SIZE: int = 2048) -> Tensor:
     if d == 3:
         _minimum_sqdistances_3d[(n, grid_cols)](x1, x2, min_distances, m, BLOCK_SIZE=BLOCK_SIZE)
     return min_distances.amin(dim=1)
+
+
+if __name__ == "__main__":  # Create example tensors
+    import torch
+
+    torch.manual_seed(42)
+    n, m, d = 1000, 4000, 3
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    t1 = torch.randn(n, d, device=device)
+    t2 = torch.randn(m, d, device=device)
+
+    # Naive implementation
+    distances = torch.cdist(t1, t2, p=2).square()
+    min_distances_naive = distances.amin(dim=1)
+
+    # Compute minimum distances using our optimized kernel
+    min_distances = min_sqdist(t1, t2)
+    print("Validating against naive implementation...")
+
+    # Check if results are close
+    is_close = torch.allclose(min_distances, min_distances_naive, rtol=1e-5, atol=1e-5)
+    print(f"Results match: {is_close}")
+    if not is_close:
+        max_diff = (min_distances - min_distances_naive).abs().max().item()
+        print(f"Maximum difference: {max_diff}")
