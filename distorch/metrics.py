@@ -1,4 +1,5 @@
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import Optional
 
 import torch
@@ -21,10 +22,19 @@ else:
     )
 
 
+@dataclass
+class DistanceMetrics:
+    Hausdorff: Tensor
+    Hausdorff95_1_to_2: Tensor = None
+    Hausdorff95_2_to_1: Tensor = None
+    AverageSurfaceDistance_1_to_2: Tensor = None
+    AverageSurfaceDistance_2_to_1: Tensor = None
+
+
 def set_metrics(set1: Tensor,
                 set2: Tensor,
                 /,
-                element_size: Optional[tuple[int | float, ...]] = None) -> dict[str, Tensor]:
+                element_size: Optional[tuple[int | float, ...]] = None) -> DistanceMetrics:
     assert set1.shape == set2.shape
     assert set1.dtype == torch.bool
     assert set2.dtype == torch.bool
@@ -47,10 +57,10 @@ def set_metrics(set1: Tensor,
         elem_1 = coords[s1].view(-1, coords_ndim)
         elem_2 = coords[s2].view(-1, coords_ndim)
         if elem_1.size(0) < 1 or elem_2.size(0) < 1:  # one set is empty
-            metrics['hausdorff'].append(nan)
+            metrics['Hausdorff'].append(nan)
             continue
         elif torch.equal(elem_1, elem_2):  # both are non-empty but equal
-            metrics['hausdorff'].append(zero)
+            metrics['Hausdorff'].append(zero)
             continue
 
         elem_1_not_2 = coords[s2.logical_not().logical_and_(s1)].view(-1, coords_ndim)
@@ -69,18 +79,18 @@ def set_metrics(set1: Tensor,
             dist_2_to_1 = torch.cdist(elem_2_not_1, elem_1).amin(dim=1).square_()
 
         hd = torch.maximum(dist_1_to_2.max(), dist_2_to_1.max()).sqrt_()
-        metrics['hausdorff'].append(hd)
-    metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
+        metrics['Hausdorff'].append(hd)
 
+    metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
     if ndim == 2:
         metrics = {k: v.squeeze(0) for k, v in metrics.items()}
     elif ndim >= 4:
         metrics = {k: v.unflatten(0, batch_shape) for k, v in metrics.items()}
 
-    return metrics
+    return DistanceMetrics(**metrics)
 
 
-def border_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> dict[str, Tensor]:
+def border_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> DistanceMetrics:
     """
     Computes the Hausdorff distances between batches of images (or 3d volumes). The images should be binary, where True
     indicates that an element (i.e. pixel/voxel) belongs to the set for which we want to compute the Hausdorff distance.
@@ -99,12 +109,10 @@ def border_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> dict[str, T
 
     """
     set1, set2 = is_border_element(images1), is_border_element(images2)
-    metrics = set_metrics(set1, set2, **kwargs)
-    metrics = {f'border_{k}': v for k, v in metrics.items()}
-    return metrics
+    return set_metrics(set1, set2, **kwargs)
 
 
-def surface_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> dict[str, Tensor]:
+def surface_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> DistanceMetrics:
     """
     Computes metrics between the surfaces of two sets. These metrics include the surface Hausdorff distance, the
     directed average surface distances and the quantile of the directed surface distances (also called Hausdorff 95%).
@@ -127,6 +135,4 @@ def surface_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> dict[str, 
 
     """
     set1, set2 = is_surface_vertex(images1), is_surface_vertex(images2)
-    metrics = set_metrics(set1, set2, **kwargs)
-    metrics = {f'surface_{k}': v for k, v in metrics.items()}
-    return metrics
+    return set_metrics(set1, set2, **kwargs)
