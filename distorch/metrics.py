@@ -29,6 +29,7 @@ class DistanceMetrics:
     Hausdorff95_2_to_1: Tensor
     AverageSurfaceDistance_1_to_2: Tensor
     AverageSurfaceDistance_2_to_1: Tensor
+    AverageSymmetricSurfaceDistance: Tensor
 
 
 def set_metrics(set1: Tensor,
@@ -85,8 +86,10 @@ def set_metrics(set1: Tensor,
         metrics['Hausdorff95_1_to_2'].append(hd95_1_to_2)
         metrics['Hausdorff95_2_to_1'].append(hd95_2_to_1)
 
-        metrics['AverageSurfaceDistance_1_to_2'].append(dist_1_to_2.sum() / elem_1.size(0))
-        metrics['AverageSurfaceDistance_2_to_1'].append(dist_2_to_1.sum() / elem_2.size(0))
+        sum_dist_1, sum_dist_2 = dist_1_to_2.sum(), dist_2_to_1.sum()
+        metrics['AverageSurfaceDistance_1_to_2'].append(sum_dist_1 / elem_1.size(0))
+        metrics['AverageSurfaceDistance_2_to_1'].append(sum_dist_2 / elem_2.size(0))
+        metrics['AverageSymmetricSurfaceDistance'].append((sum_dist_1 + sum_dist_2) / (elem_1.size(0) + elem_2.size(0)))
 
     metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
     if ndim == 2:
