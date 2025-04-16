@@ -67,19 +67,26 @@ def set_metrics(set1: Tensor,
         elem_2_not_1 = coords[s1.logical_not().logical_and_(s2)].view(-1, coords_ndim)
 
         if distorch.use_pykeops:
-            dist_1_to_2 = Vi(elem_1_not_2).sqdist(Vj(elem_2)).min(dim=1)
-            dist_2_to_1 = Vi(elem_2_not_1).sqdist(Vj(elem_1)).min(dim=1)
+            dist_1_to_2 = Vi(elem_1_not_2).sqdist(Vj(elem_2)).min(dim=1).squeeze(1).sqrt_()
+            dist_2_to_1 = Vi(elem_2_not_1).sqdist(Vj(elem_1)).min(dim=1).squeeze(1).sqrt_()
 
         elif distorch.use_triton:
-            dist_1_to_2 = min_sqdist(elem_1_not_2, elem_2)
-            dist_2_to_1 = min_sqdist(elem_2_not_1, elem_1)
+            dist_1_to_2 = min_sqdist(elem_1_not_2, elem_2).sqrt_()
+            dist_2_to_1 = min_sqdist(elem_2_not_1, elem_1).sqrt_()
 
         else:  # defaults to native
-            dist_1_to_2 = torch.cdist(elem_1_not_2, elem_2).amin(dim=1).square_()
-            dist_2_to_1 = torch.cdist(elem_2_not_1, elem_1).amin(dim=1).square_()
+            dist_1_to_2 = torch.cdist(elem_1_not_2, elem_2).amin(dim=1)
+            dist_2_to_1 = torch.cdist(elem_2_not_1, elem_1).amin(dim=1)
 
-        hd = torch.maximum(dist_1_to_2.max(), dist_2_to_1.max()).sqrt_()
-        metrics['Hausdorff'].append(hd)
+        metrics['Hausdorff'].append(torch.maximum(dist_1_to_2.max(), dist_2_to_1.max()))
+
+        hd95_1_to_2 = torch.quantile(dist_1_to_2, q=1 - (1 - 0.95) * elem_1.size(0) / elem_1_not_2.size(0))
+        hd95_2_to_1 = torch.quantile(dist_2_to_1, q=1 - (1 - 0.95) * elem_2.size(0) / elem_2_not_1.size(0))
+        metrics['Hausdorff95_1_to_2'].append(hd95_1_to_2)
+        metrics['Hausdorff95_2_to_1'].append(hd95_2_to_1)
+
+        metrics['AverageSurfaceDistance_1_to_2'].append(dist_1_to_2.sum() / elem_1.size(0))
+        metrics['AverageSurfaceDistance_2_to_1'].append(dist_2_to_1.sum() / elem_2.size(0))
 
     metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
     if ndim == 2:
