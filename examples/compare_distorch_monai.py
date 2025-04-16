@@ -6,7 +6,7 @@ import torch
 from monai.metrics import compute_average_surface_distance, compute_hausdorff_distance
 from torch.nn import functional as F
 
-from distorch.metrics import surface_metrics
+from distorch.metrics import surface_metrics, border_metrics
 
 if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -27,6 +27,11 @@ if __name__ == '__main__':
 
     surf_metrics = surface_metrics(gt_onehot[1:], prediction_onehot[1:], element_size=element_size)
     pprint(surf_metrics)
+    print('\n')
+
+    bord_metrics = border_metrics(gt_onehot[1:], prediction_onehot[1:], element_size=element_size)
+    pprint(bord_metrics)
+    print('\n')
 
     monai_hausdorff = compute_hausdorff_distance(prediction_onehot.unsqueeze(0), gt_onehot.unsqueeze(0),
                                                  spacing=element_size)
