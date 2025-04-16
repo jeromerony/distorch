@@ -10,12 +10,15 @@ def _minimum_sqdistances_2d(x1_ptr,
                             m,
                             BLOCK_SIZE: tl.constexpr):
     row_idx = tl.program_id(0)
+    col_idx = tl.program_id(1)
+    num_cols = tl.num_programs(1)
+
     x1_row_start = x1_ptr + row_idx * 2
     x1_x = tl.load(x1_row_start)
     x1_y = tl.load(x1_row_start + 1)
 
     targets_offset = tl.arange(0, BLOCK_SIZE) * 2
-    col = tl.program_id(1) * BLOCK_SIZE
+    col = col_idx * BLOCK_SIZE
 
     mask = col * 2 + targets_offset < m * 2
     x2_x = tl.load(x2_ptr + col * 2 + targets_offset, mask=mask, other=float('inf'))
@@ -25,7 +28,7 @@ def _minimum_sqdistances_2d(x1_ptr,
     sqdist = dx * dx + dy * dy
     min_sqdist = tl.min(sqdist, axis=0)
 
-    result_ptr = min_dist_ptr + row_idx * tl.num_programs(1) + tl.program_id(1)
+    result_ptr = min_dist_ptr + row_idx * num_cols + col_idx
     tl.store(result_ptr, min_sqdist)
 
 
@@ -36,13 +39,16 @@ def _minimum_sqdistances_3d(x1_ptr,
                             m,
                             BLOCK_SIZE: tl.constexpr):
     row_idx = tl.program_id(0)
+    col_idx = tl.program_id(1)
+    num_cols = tl.num_programs(1)
+
     x1_row_start = x1_ptr + row_idx * 3
     x1_x = tl.load(x1_row_start)
     x1_y = tl.load(x1_row_start + 1)
     x1_z = tl.load(x1_row_start + 2)
 
     targets_offset = tl.arange(0, BLOCK_SIZE) * 3
-    col = tl.program_id(1) * BLOCK_SIZE
+    col = col_idx * BLOCK_SIZE
 
     mask = col * 3 + targets_offset < m * 3
     x2_x = tl.load(x2_ptr + col * 3 + targets_offset, mask=mask, other=float('inf'))
@@ -54,7 +60,7 @@ def _minimum_sqdistances_3d(x1_ptr,
     sqdist = dx * dx + dy * dy + dz * dz
     min_sqdist = tl.min(sqdist, axis=0)
 
-    result_ptr = min_dist_ptr + row_idx * tl.num_programs(1) + tl.program_id(1)
+    result_ptr = min_dist_ptr + row_idx * num_cols + col_idx
     tl.store(result_ptr, min_sqdist)
 
 
