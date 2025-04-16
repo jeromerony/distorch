@@ -31,7 +31,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
-edt = ["cucim-cu12"]
+edt = ["cucim-cu12", "cupy-cuda12x"]
 
 [tool.setuptools.packages.find]
 packages = ["distorch*"]
