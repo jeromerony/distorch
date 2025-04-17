@@ -48,15 +48,14 @@ def set_metrics(set1: Tensor,
         set1, set2 = set1.flatten(start_dim=0, end_dim=-4), set2.flatten(start_dim=0, end_dim=-4)
 
     coords_shape = set1.shape[1:]
-    coords_ndim = len(coords_shape)
     coords = generate_coordinates(coords_shape, device=set1.device, element_size=element_size)
 
     zero = torch.tensor(0., device=set1.device)
     nan = torch.tensor(float('nan'), device=set1.device)
     metrics = {f.name: [] for f in dataclasses.fields(DistanceMetrics)}
     for s1, s2 in zip(set1, set2):
-        elem_1 = coords[s1].view(-1, coords_ndim)
-        elem_2 = coords[s2].view(-1, coords_ndim)
+        elem_1 = coords[s1]
+        elem_2 = coords[s2]
         if elem_1.size(0) < 1 or elem_2.size(0) < 1:  # one set is empty
             [m.append(nan) for m in metrics.values()]
             continue
@@ -64,8 +63,8 @@ def set_metrics(set1: Tensor,
             [m.append(zero) for m in metrics.values()]
             continue
 
-        elem_1_not_2 = coords[s2.logical_not().logical_and_(s1)].view(-1, coords_ndim)
-        elem_2_not_1 = coords[s1.logical_not().logical_and_(s2)].view(-1, coords_ndim)
+        elem_1_not_2 = coords[s2.logical_not().logical_and_(s1)]
+        elem_2_not_1 = coords[s1.logical_not().logical_and_(s2)]
 
         if distorch.use_pykeops:
             dist_1_to_2 = Vi(elem_1_not_2).sqdist(Vj(elem_2)).min(dim=1).squeeze(1).sqrt_()
