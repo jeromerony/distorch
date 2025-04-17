@@ -56,7 +56,9 @@ def set_metrics(set1: Tensor,
     for s1, s2 in zip(set1, set2):
         elem_1 = coords[s1]
         elem_2 = coords[s2]
-        if elem_1.size(0) < 1 or elem_2.size(0) < 1:  # one set is empty
+        n1, n2 = len(elem_1), len(elem_2)
+
+        if n1 < 1 or n2 < 1:  # one set is empty
             [m.append(nan) for m in metrics.values()]
             continue
         elif torch.equal(elem_1, elem_2):  # both are non-empty but equal
@@ -80,15 +82,15 @@ def set_metrics(set1: Tensor,
 
         metrics['Hausdorff'].append(torch.maximum(dist_1_to_2.max(), dist_2_to_1.max()))
 
-        hd95_1_to_2 = torch.quantile(dist_1_to_2, q=1 - (1 - 0.95) * elem_1.size(0) / elem_1_not_2.size(0))
-        hd95_2_to_1 = torch.quantile(dist_2_to_1, q=1 - (1 - 0.95) * elem_2.size(0) / elem_2_not_1.size(0))
+        hd95_1_to_2 = torch.quantile(dist_1_to_2, q=1 - (1 - 0.95) * n1 / elem_1_not_2.size(0))
+        hd95_2_to_1 = torch.quantile(dist_2_to_1, q=1 - (1 - 0.95) * n2 / elem_2_not_1.size(0))
         metrics['Hausdorff95_1_to_2'].append(hd95_1_to_2)
         metrics['Hausdorff95_2_to_1'].append(hd95_2_to_1)
 
         sum_dist_1, sum_dist_2 = dist_1_to_2.sum(), dist_2_to_1.sum()
-        metrics['AverageSurfaceDistance_1_to_2'].append(sum_dist_1 / elem_1.size(0))
-        metrics['AverageSurfaceDistance_2_to_1'].append(sum_dist_2 / elem_2.size(0))
-        metrics['AverageSymmetricSurfaceDistance'].append((sum_dist_1 + sum_dist_2) / (elem_1.size(0) + elem_2.size(0)))
+        metrics['AverageSurfaceDistance_1_to_2'].append(sum_dist_1 / n1)
+        metrics['AverageSurfaceDistance_2_to_1'].append(sum_dist_2 / n2)
+        metrics['AverageSymmetricSurfaceDistance'].append((sum_dist_1 + sum_dist_2) / (n1 + n2))
 
     metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
     if ndim == 2:
