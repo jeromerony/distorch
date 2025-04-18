@@ -64,7 +64,7 @@ def _minimum_sqdistances_3d(x1_ptr,
     tl.store(result_ptr, min_sqdist)
 
 
-def min_sqdist(x1: Tensor, x2: Tensor, BLOCK_SIZE: int = 2048) -> Tensor:
+def min_sqdist_triton(x1: Tensor, x2: Tensor, BLOCK_SIZE: int = 2048) -> Tensor:
     d = x1.size(1)
     assert d == x2.size(1)
     n, m = x1.size(0), x2.size(0)
@@ -92,7 +92,7 @@ if __name__ == "__main__":  # Create example tensors
     min_distances_naive = distances.amin(dim=1)
 
     # Compute minimum distances using our optimized kernel
-    min_distances = min_sqdist(t1, t2)
+    min_distances = min_sqdist_triton(t1, t2)
     print("Validating against naive implementation...")
 
     # Check if results are close

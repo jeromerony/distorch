@@ -7,10 +7,11 @@ from torch import Tensor
 
 import distorch
 from distorch.boundary import is_border_element, is_surface_vertex
+from distorch.min_pairwise_distance.cpu import min_sqdist_numba
 from distorch.utils import generate_coordinates
 
 if distorch.use_triton:
-    from distorch.minimum_pairwise_distance import min_sqdist
+    from distorch.min_pairwise_distance.gpu import min_sqdist_triton
 
 if distorch.use_pykeops:
     from pykeops.torch import Vi, Vj
@@ -68,13 +69,18 @@ def set_metrics(set1: Tensor,
         elem_1_not_2 = coords[s2.logical_not().logical_and_(s1)]
         elem_2_not_1 = coords[s1.logical_not().logical_and_(s2)]
 
-        if distorch.use_pykeops:
+        if set1.device.type == 'cpu':
+            dist_1_to_2 = min_sqdist_numba(elem_1_not_2, elem_2)
+            dist_2_to_1 = min_sqdist_numba(elem_2_not_1, elem_1)
+            dist_1_to_2.sqrt_(), dist_2_to_1.sqrt_()
+
+        elif distorch.use_pykeops:
             dist_1_to_2 = Vi(elem_1_not_2).sqdist(Vj(elem_2)).min(dim=1).squeeze(1).sqrt_()
             dist_2_to_1 = Vi(elem_2_not_1).sqdist(Vj(elem_1)).min(dim=1).squeeze(1).sqrt_()
 
         elif distorch.use_triton:
-            dist_1_to_2 = min_sqdist(elem_1_not_2, elem_2).sqrt_()
-            dist_2_to_1 = min_sqdist(elem_2_not_1, elem_1).sqrt_()
+            dist_1_to_2 = min_sqdist_triton(elem_1_not_2, elem_2).sqrt_()
+            dist_2_to_1 = min_sqdist_triton(elem_2_not_1, elem_1).sqrt_()
 
         else:  # defaults to native
             dist_1_to_2 = torch.cdist(elem_1_not_2, elem_2).amin(dim=1)
