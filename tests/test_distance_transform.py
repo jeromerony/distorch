@@ -1,7 +1,6 @@
 import pytest
 import torch
 
-import distorch
 from distorch import distance_transform
 
 # @formatter:off
@@ -53,10 +52,8 @@ images_sqdistances = (
 # @formatter:on
 
 
-@pytest.mark.parametrize('use_pykeops', (False, True))
 @pytest.mark.parametrize('image,sqdistances', images_sqdistances)
-def test_euclidean_distance_transform(image, sqdistances, use_pykeops: bool, device_type: str = 'cuda'):
-    distorch.use_pykeops = use_pykeops
+def test_euclidean_distance_transform(image, sqdistances, device_type: str = 'cuda'):
     device = torch.device(device_type)
     image = torch.tensor(image, dtype=torch.bool, device=device)
     distances = torch.tensor(sqdistances, dtype=torch.float, device=device).sqrt()
@@ -122,10 +119,8 @@ surface_images_sqdistances = (
 )
 # @formatter:on
 
-@pytest.mark.parametrize('use_pykeops', (False, True))
 @pytest.mark.parametrize('image,sqdistances', surface_images_sqdistances)
-def test_surface_euclidean_distance_transform(image, sqdistances, use_pykeops: bool, device_type: str = 'cuda'):
-    distorch.use_pykeops = use_pykeops
+def test_surface_euclidean_distance_transform(image, sqdistances, device_type: str = 'cuda'):
     device = torch.device(device_type)
     image = torch.tensor(image, dtype=torch.bool, device=device)
     distances = torch.tensor(sqdistances, dtype=torch.float, device=device).sqrt()
