@@ -11,7 +11,7 @@ from distorch.min_pairwise_distance.cpu import min_sqdist_numba
 from distorch.utils import generate_coordinates
 
 if distorch.use_triton:
-    from distorch.min_pairwise_distance.gpu import min_sqdist_triton
+    from distorch.min_pairwise_distance.cuda import min_sqdist_triton
 
 if distorch.use_pykeops:
     from pykeops.torch import Vi, Vj
