@@ -1,3 +1,4 @@
+import math
 from typing import Optional
 
 import torch
@@ -16,3 +17,19 @@ def generate_coordinates(*size,
         torch._foreach_mul_(aranges, element_size)
     coordinates = torch.stack(torch.meshgrid(*aranges, indexing='ij'), dim=-1)
     return coordinates
+
+
+def zero_padded_nonnegative_quantile(x: Tensor, q: float, n: int) -> Tensor:
+    k = x.size(0)
+    assert n >= 1
+    assert n >= k
+    position = (n - 1) * q
+    next_index = math.ceil(position)
+    if k < 1 or next_index <= (n - k - 1):
+        return x.new_zeros(size=(1,))
+    elif next_index <= n - k:
+        interp = 1 - (next_index - position)
+        return torch.amin(x) * interp
+    else:
+        adjusted_q = (position - (n - k)) / (k - 1)
+        return torch.quantile(x, q=adjusted_q)

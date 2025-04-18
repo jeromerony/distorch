@@ -7,7 +7,7 @@ from torch import Tensor
 
 import distorch
 from distorch.boundary import is_border_element, is_surface_vertex
-from distorch.utils import generate_coordinates
+from distorch.utils import generate_coordinates, zero_padded_nonnegative_quantile
 
 if distorch.use_triton:
     from distorch.minimum_pairwise_distance import min_sqdist
@@ -81,11 +81,8 @@ def set_metrics(set1: Tensor,
             dist_2_to_1 = torch.cdist(elem_2_not_1, elem_1).amin(dim=1)
 
         metrics['Hausdorff'].append(torch.maximum(dist_1_to_2.max(), dist_2_to_1.max()))
-
-        hd95_1_to_2 = torch.quantile(dist_1_to_2, q=1 - (1 - 0.95) * n1 / elem_1_not_2.size(0))
-        hd95_2_to_1 = torch.quantile(dist_2_to_1, q=1 - (1 - 0.95) * n2 / elem_2_not_1.size(0))
-        metrics['Hausdorff95_1_to_2'].append(hd95_1_to_2)
-        metrics['Hausdorff95_2_to_1'].append(hd95_2_to_1)
+        metrics['Hausdorff95_1_to_2'].append(zero_padded_nonnegative_quantile(dist_1_to_2, q=0.95, n=n1))
+        metrics['Hausdorff95_2_to_1'].append(zero_padded_nonnegative_quantile(dist_2_to_1, q=0.95, n=n2))
 
         sum_dist_1, sum_dist_2 = dist_1_to_2.sum(), dist_2_to_1.sum()
         metrics['AverageSurfaceDistance_1_to_2'].append(sum_dist_1 / n1)
