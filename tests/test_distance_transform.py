@@ -1,6 +1,8 @@
 import pytest
 import torch
 
+pytest.importorskip('cupy')
+pytest.importorskip('cucim')
 from distorch import distance_transform
 
 # @formatter:off
