@@ -61,9 +61,8 @@ images_isborder = (
 # @formatter:on
 
 @pytest.mark.parametrize('device_type', devices)
-@pytest.mark.parametrize('use_pykeops', (False, True))
 @pytest.mark.parametrize('image,is_border', images_isborder)
-def test_is_border_element(image, is_border, device_type: str, use_pykeops: bool):
+def test_is_border_element(image, is_border, device_type: str):
     device = torch.device(device_type)
     image = torch.tensor(image, dtype=torch.bool, device=device)
     is_border = torch.tensor(is_border, dtype=torch.bool, device=device)
@@ -130,9 +129,8 @@ images_issurface = (
 # @formatter:on
 
 @pytest.mark.parametrize('device_type', devices)
-@pytest.mark.parametrize('use_pykeops', (False, True))
 @pytest.mark.parametrize('image,is_surface', images_issurface)
-def test_is_surface_vertex(image, is_surface, device_type: str, use_pykeops: bool):
+def test_is_surface_vertex(image, is_surface, device_type: str):
     device = torch.device(device_type)
     image = torch.tensor(image, dtype=torch.bool, device=device)
     is_surface = torch.tensor(is_surface, dtype=torch.bool, device=device)
