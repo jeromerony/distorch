@@ -20,6 +20,34 @@ def generate_coordinates(*size,
 
 
 def zero_padded_nonnegative_quantile(x: Tensor, q: float, n: int) -> Tensor:
+    """
+    Compute the q-th quantile for a nonnegative 1d Tensor, adjusted for 0 values.
+    This function is equivalent to padding `x` with 0 values such that it has a size `n`.
+
+    Parameters
+    ----------
+    x : Tensor
+        The 1d input tensor.
+    q : float
+        A scalar in the range [0, 1].
+    n : int
+        The size of `x` including 0 values, should verify `n >= x.size(0)`.
+
+    Examples
+    --------
+    >>> x = torch.randn(3).abs_()
+    >>> x
+    tensor([0.3430, 1.0778, 0.5040])
+    >>> zero_padded_nonnegative_quantile(x, q=0.75, n=10)
+    tensor(0.2573)
+    >>> import torch.nn.functional as F
+    >>> x_padded = F.pad(x, (0, 7), value=0)
+    >>> x_padded
+    tensor([0.3430, 1.0778, 0.5040, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000])
+    >>> torch.quantile(x_padded, q=0.75)
+    tensor(0.2573)
+
+    """
     k = x.size(0)
     assert n >= 1
     assert n >= k
