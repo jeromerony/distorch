@@ -78,7 +78,7 @@ def min_sqdist(x1: Tensor, x2: Tensor, BLOCK_SIZE: int = 2048) -> Tensor:
     return min_distances.amin(dim=1)
 
 
-if __name__ == "__main__":  # Create example tensors
+if __name__ == "__main__":
     import torch
 
     torch.manual_seed(42)

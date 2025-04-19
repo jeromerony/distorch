@@ -5,21 +5,9 @@ from typing import Optional
 import torch
 from torch import Tensor
 
-import distorch
 from distorch.boundary import is_border_element, is_surface_vertex
+from distorch.min_pairwise_distance import minimum_distances
 from distorch.utils import generate_coordinates, zero_padded_nonnegative_quantile
-
-if distorch.use_triton:
-    from distorch.minimum_pairwise_distance import min_sqdist
-
-if distorch.use_pykeops:
-    from pykeops.torch import Vi, Vj
-else:
-    import warnings
-
-    warnings.warn(
-        'PyKeops or Triton could not be imported, this will result in high memory usage and/or out-of-memory crash.'
-    )
 
 
 @dataclass
@@ -30,19 +18,6 @@ class DistanceMetrics:
     AverageSurfaceDistance_1_to_2: Tensor
     AverageSurfaceDistance_2_to_1: Tensor
     AverageSymmetricSurfaceDistance: Tensor
-
-
-def minimum_distances(elem1: Tensor, elem2: Tensor) -> Tensor:
-    if elem1.size(0) == 0:
-        min_dists = elem1.new_zeros(size=(1,))
-    elif distorch.use_pykeops:
-        min_dists = Vi(elem1).sqdist(Vj(elem2)).min(dim=1).squeeze(1).sqrt_()
-    elif distorch.use_triton and elem1.is_cuda:
-        min_dists = min_sqdist(elem1, elem2).sqrt_()
-    else:  # defaults to native
-        min_dists = torch.cdist(elem1, elem2).amin(dim=1)
-
-    return min_dists
 
 
 def set_metrics(set1: Tensor,
