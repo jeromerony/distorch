@@ -16,7 +16,51 @@ Citing Table 1 from our submission, on three datasets (SegTHOR, OAI, WMH 1.0):
 ## Installation
 todo
 ## Usage
-todo
+
+The core functions for metrics computation in the [`metrics.py`](distorch/metrics.py) file, but we also provide some utility to compute the desired metrics between two folders:
+```
+>>> python compute_metrics.py --help
+usage: compute_metrics.py [-h] --ref_folder REF_FOLDER --pred_folder PRED_FOLDER --ref_extension {.nii.gz,.png,.npy,.nii} [--pred_extension {.nii.gz,.png,.npy,.nii}]
+                          --num_classes NUM_CLASSES [--metrics {3d_hd,3d_hd95,3d_assd} [{3d_hd,3d_hd95,3d_assd} ...]] [--cpu] [--overwrite] [--save_folder SAVE_FOLDER]
+
+Compute metrics for a list of images
+
+options:
+  -h, --help            show this help message and exit
+  --ref_folder REF_FOLDER
+  --pred_folder PRED_FOLDER
+  --ref_extension {.nii.gz,.png,.npy,.nii}
+  --pred_extension {.nii.gz,.png,.npy,.nii}
+  --num_classes, -K, -C NUM_CLASSES
+  --metrics {3d_hd,3d_hd95,3d_assd} [{3d_hd,3d_hd95,3d_assd} ...]
+                        The metrics to compute.
+  --cpu
+  --overwrite           Overwrite existing metrics output, without prompt.
+  --save_folder SAVE_FOLDER
+                        The folder where to save the metrics
+```
+
+With an example invocation:
+```
+>>>  CUDA_VISIBLE_DEVICES=0 python -O compute_metrics.py --ref_folder ~/code/constrained_cnn/data/OAI/test/gt_3d --pred_folder ~/code/constrained_cnn/results/OAI/cross_entropy/best_epoch/test_3d/ --ref_extension .nii.gz -K 5 --metrics 3d_hd 3d_hd95 3d_assd
+
+{'cpu': False,
+ 'metrics': ['3d_hd', '3d_hd95', '3d_assd'],
+ 'num_classes': 5,
+ 'overwrite': False,
+ 'pred_extension': '.nii.gz',
+ 'pred_folder': PosixPath('/home/hoel/code/constrained_cnn/results/OAI/cross_entropy/best_epoch/test_3d'),
+ 'ref_extension': '.nii.gz',
+ 'ref_folder': PosixPath('/home/hoel/code/constrained_cnn/data/OAI/test/gt_3d'),
+ 'save_folder': None}
+>>> Initializing Volume dataset with 100 volumes
+>>  /home/hoel/code/constrained_cnn/data/OAI/test/gt_3d, /home/hoel/code/constrained_cnn/results/OAI/cross_entropy/best_epoch/test_3d
+> All stems found in both folders
+>>> /home/hoel/code/constrained_cnn/results/OAI/cross_entropy/best_epoch/test_3d
+3d_hd [7.522784  4.030704  5.530623  4.173739  5.6819477]
+3d_hd95 [0.54261297 0.8277547  0.9859997  0.8178589  1.3280611 ]
+3d_assd [0.07726964 0.25085682 0.31391588 0.25151908 0.35778362]
+```
 
 
 ## License and citation
