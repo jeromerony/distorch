@@ -32,6 +32,19 @@ class DistanceMetrics:
     AverageSymmetricSurfaceDistance: Tensor
 
 
+def minimum_distances(elem1: Tensor, elem2: Tensor) -> Tensor:
+    if elem1.size(0) == 0:
+        min_dists = elem1.new_zeros(size=(1,))
+    elif distorch.use_pykeops:
+        min_dists = Vi(elem1).sqdist(Vj(elem2)).min(dim=1).squeeze(1).sqrt_()
+    elif distorch.use_triton and elem1.is_cuda:
+        min_dists = min_sqdist(elem1, elem2).sqrt_()
+    else:  # defaults to native
+        min_dists = torch.cdist(elem1, elem2).amin(dim=1)
+
+    return min_dists
+
+
 def set_metrics(set1: Tensor,
                 set2: Tensor,
                 /,
@@ -68,17 +81,8 @@ def set_metrics(set1: Tensor,
         elem_1_not_2 = coords[s2.logical_not().logical_and_(s1)]
         elem_2_not_1 = coords[s1.logical_not().logical_and_(s2)]
 
-        if distorch.use_pykeops:
-            dist_1_to_2 = Vi(elem_1_not_2).sqdist(Vj(elem_2)).min(dim=1).squeeze(1).sqrt_()
-            dist_2_to_1 = Vi(elem_2_not_1).sqdist(Vj(elem_1)).min(dim=1).squeeze(1).sqrt_()
-
-        elif distorch.use_triton:
-            dist_1_to_2 = min_sqdist(elem_1_not_2, elem_2).sqrt_()
-            dist_2_to_1 = min_sqdist(elem_2_not_1, elem_1).sqrt_()
-
-        else:  # defaults to native
-            dist_1_to_2 = torch.cdist(elem_1_not_2, elem_2).amin(dim=1)
-            dist_2_to_1 = torch.cdist(elem_2_not_1, elem_1).amin(dim=1)
+        dist_1_to_2 = minimum_distances(elem_1_not_2, elem_2)
+        dist_2_to_1 = minimum_distances(elem_2_not_1, elem_1)
 
         metrics['Hausdorff'].append(torch.maximum(dist_1_to_2.max(), dist_2_to_1.max()))
         metrics['Hausdorff95_1_to_2'].append(zero_padded_nonnegative_quantile(dist_1_to_2, q=0.95, n=n1))
