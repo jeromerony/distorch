@@ -34,7 +34,7 @@ dev = ["pytest"]
 edt = ["cucim-cu12", "cupy-cuda12x"]
 
 [tool.setuptools.packages.find]
-packages = ["distorch*"]
+include = ["distorch*"]
 
 [tool.setuptools.dynamic]
 version = { attr = "distorch.__version__" }
