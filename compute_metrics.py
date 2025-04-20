@@ -231,10 +231,8 @@ def main() -> None:
                                 args.ref_folder.glob(f'*{args.ref_extension}')))
 
     total_volumes = len(stems)
-    metrics: dict[str, Tensor] = defaultdict(lambda: torch.zeros((total_volumes, K),
-                                                                 dtype=torch.float32))
-    for metric in args.metrics:
-        metrics[metric]
+    metrics: dict[str, Tensor] = {m: torch.zeros((total_volumes, K), dtype=torch.float32, device=device)
+                                  for m in args.metrics}
 
     dt_set = VolumeDataset(stems, args.ref_folder, args.pred_folder,
                            args.ref_extension, args.pred_extension, args.num_classes,
