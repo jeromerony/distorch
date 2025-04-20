@@ -16,7 +16,7 @@ if use_triton:
 def minimum_distances(elem1: Tensor, elem2: Tensor) -> Tensor:
     if elem1.size(0) == 0:
         min_dists = elem1.new_zeros(size=(1,))
-    elif use_pykeops:
+    elif use_pykeops and elem1.is_cuda:
         min_dists = Vi(elem1).sqdist(Vj(elem2)).min(dim=1).squeeze(1).sqrt_()
     elif use_triton and elem1.is_cuda:
         min_dists = min_sqdist(elem1, elem2).sqrt_()
