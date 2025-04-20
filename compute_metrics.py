@@ -60,8 +60,7 @@ def sset(a: Tensor, sub: Iterable) -> bool:
 
 def simplex(t: Tensor, axis=1) -> bool:
     _sum = t.sum(axis).type(torch.float32)
-    _ones = torch.ones_like(_sum, dtype=torch.float32)
-    return torch.allclose(_sum, _ones)
+    return torch.allclose(_sum, _sum.new_ones(()))  # verify allclose(_sum, 1) with broadcasting
 
 
 def one_hot(t: Tensor, axis=1) -> bool:
