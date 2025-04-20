@@ -32,7 +32,6 @@
 
 import argparse
 import os
-from collections import defaultdict
 from functools import partial
 from pathlib import Path
 from pprint import pprint
@@ -177,11 +176,8 @@ def compute_metrics(loader, metrics: dict[str, Tensor], device, K: int) -> dict[
             assert K == K_
             assert B == 1, (B, ref.shape)
 
-            if set(metrics.keys()).intersection({'3d_hd',
-                                                 '3d_hd95',
-                                                 '3d_assd'}):
-                h = border_metrics(pred, ref,
-                                   element_size=tuple(float(e) for e in voxelspacing))
+            if set(metrics.keys()).intersection({'3d_hd', '3d_hd95', '3d_assd'}):
+                h = border_metrics(pred, ref, element_size=tuple(float(e) for e in voxelspacing))
 
                 if '3d_hd' in metrics.keys():
                     metrics['3d_hd'][j] = h.Hausdorff
