@@ -201,22 +201,18 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--ref_folder', type=Path, required=True)
     parser.add_argument('--pred_folder', type=Path, required=True)
 
-    parser.add_argument('--ref_extension', type=str, required=True,
-                        choices=['.nii.gz', '.png', '.npy', '.nii'])
-    parser.add_argument('--pred_extension', type=str,
-                        choices=['.nii.gz', '.png', '.npy', '.nii'])
+    extension_choices = ['.nii.gz', '.png', '.npy', '.nii']
+    parser.add_argument('--ref_extension', type=str, required=True, choices=extension_choices)
+    parser.add_argument('--pred_extension', type=str, choices=extension_choices)
 
     parser.add_argument('--num_classes', '-K', '-C', type=int, required=True)
-    parser.add_argument('--metrics', type=str, nargs='+',
-                        choices=['3d_hd', '3d_hd95', '3d_assd'],
+    parser.add_argument('--metrics', type=str, nargs='+', choices=['3d_hd', '3d_hd95', '3d_assd'],
                         help='The metrics to compute.')
 
     parser.add_argument('--cpu', action='store_true')
-    parser.add_argument('--overwrite', action='store_true',
-                        help='Overwrite existing metrics output, without prompt.')
+    parser.add_argument('--overwrite', action='store_true', help='Overwrite existing metrics output, without prompt.')
 
-    parser.add_argument('--save_folder', type=Path, default=None,
-                        help='The folder where to save the metrics')
+    parser.add_argument('--save_folder', type=Path, default=None, help='The folder where to save the metrics')
 
     args = parser.parse_args()
 
