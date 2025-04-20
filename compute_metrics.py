@@ -31,6 +31,7 @@
 
 
 import argparse
+import os
 from collections import defaultdict
 from functools import partial
 from pathlib import Path
@@ -41,7 +42,6 @@ import nibabel as nib
 import numpy as np
 import torch
 from PIL import Image
-from psutil import cpu_count
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
@@ -260,7 +260,7 @@ def main() -> None:
                            quiet=False)
     loader = DataLoader(dt_set,
                         batch_size=1,
-                        num_workers=cpu_count(logical=False),
+                        num_workers=len(os.sched_getaffinity(0)),
                         shuffle=False,
                         drop_last=False)
 
