@@ -147,16 +147,16 @@ class VolumeDataset(Dataset):
             case ('.nii.gz', '.nii.gz') | ('.nii', '.nii.gz') | ('.nii.gz', '.nii'):
                 ref_obj = nib.load(self.ref_folder / (stem + self.ref_extension))
                 spacing = ref_obj.header.get_zooms()  # type: ignore
-                ref = np.asarray(ref_obj.dataobj).astype(int)  # type: ignore
+                ref = np.asarray(ref_obj.dataobj, dtype=int)  # type: ignore
 
                 pred_obj = nib.load(self.pred_folder / (stem + self.pred_extension))
                 assert spacing == pred_obj.header.get_zooms()  # type: ignore
-                pred = np.asarray(pred_obj.dataobj).astype(int)  # type: ignore
+                pred = np.asarray(pred_obj.dataobj, dtype=int)  # type: ignore
             case _:
                 raise NotImplementedError(self.ref_extension, self.pred_extension)
 
-        return {'ref': torch.tensor(ref, dtype=torch.int64),
-                'pred': torch.tensor(pred, dtype=torch.int64),
+        return {'ref': torch.as_tensor(ref, dtype=torch.int64),
+                'pred': torch.as_tensor(pred, dtype=torch.int64),
                 'voxelspacing': spacing,
                 'stem': stem}
 
