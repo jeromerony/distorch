@@ -1,4 +1,9 @@
 # DisTorch: A fast GPU implementation of 3D Hausdorff Distance
+
+**Disclaimer: this library is in a pre-alpha state. Dependencies, features and API are expected to change.
+Additionally, current development is done on the `main` branch.
+This will change once we reach a stable version and produce a release on PyPI.**
+
 ## (and others)
 
 This repository contains the code of our MIDL 2025 submission to the short paper track. It implements the Hausdorff distance, and similar distance based metrics, with GPU accelerated frameworks (currently [`KeOps`](https://www.kernel-operations.io/) and [`Triton`](https://github.com/triton-lang/triton)).
