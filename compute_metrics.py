@@ -63,14 +63,13 @@ def class2one_hot(seg: Tensor, K: int) -> Tensor:
     assert torch.isin(u := torch.unique(seg), seg.new_tensor(list(range(K))), assume_unique=True).all(), (u, K)
 
     b, *img_shape = seg.shape  # type: tuple[int, ...]
+    seg_one_hot = seg.new_zeros((b, K, *img_shape), dtype=torch.int32)
+    seg_one_hot.scatter_(1, seg[:, None, ...], 1)
 
-    device = seg.device
-    res = torch.zeros((b, K, *img_shape), dtype=torch.int32, device=device).scatter_(1, seg[:, None, ...], 1)
+    assert seg_one_hot.shape == (b, K, *img_shape)
+    assert is_one_hot(seg_one_hot)
 
-    assert res.shape == (b, K, *img_shape)
-    assert is_one_hot(res)
-
-    return res
+    return seg_one_hot
 
 
 # Others utils
