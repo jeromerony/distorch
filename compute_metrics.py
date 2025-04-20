@@ -36,7 +36,6 @@ from collections import defaultdict
 from functools import partial
 from pathlib import Path
 from pprint import pprint
-from typing import Iterable, Set
 
 import nibabel as nib
 import numpy as np
@@ -50,26 +49,18 @@ from distorch.metrics import border_metrics
 
 
 # Assert utils
-def uniq(a: Tensor) -> Set:
-    return set(torch.unique(a.cpu()).numpy())
-
-
-def sset(a: Tensor, sub: Iterable) -> bool:
-    return uniq(a).issubset(sub)
-
-
-def simplex(t: Tensor, axis=1) -> bool:
+def is_simplex(t: Tensor, axis=1) -> bool:
     _sum = t.sum(axis).type(torch.float32)
     return torch.allclose(_sum, _sum.new_ones(()))  # verify allclose(_sum, 1) with broadcasting
 
 
-def one_hot(t: Tensor, axis=1) -> bool:
-    return simplex(t, axis) and sset(t, [0, 1])
+def is_one_hot(t: Tensor, axis=1) -> bool:
+    return is_simplex(t, axis) and torch.isin(torch.unique(t), t.new_tensor([0, 1]), assume_unique=True).all().item()
 
 
 # Pre-processing utils
 def class2one_hot(seg: Tensor, K: int) -> Tensor:
-    assert sset(seg, list(range(K))), (uniq(seg), K)
+    assert torch.isin(u := torch.unique(seg), seg.new_tensor(list(range(K))), assume_unique=True).all(), (u, K)
 
     b, *img_shape = seg.shape  # type: tuple[int, ...]
 
@@ -77,7 +68,7 @@ def class2one_hot(seg: Tensor, K: int) -> Tensor:
     res = torch.zeros((b, K, *img_shape), dtype=torch.int32, device=device).scatter_(1, seg[:, None, ...], 1)
 
     assert res.shape == (b, K, *img_shape)
-    assert one_hot(res)
+    assert is_one_hot(res)
 
     return res
 
@@ -180,8 +171,8 @@ def compute_metrics(loader, metrics: dict[str, Tensor], device, K: int) -> dict[
             voxelspacing: tuple[float, ...] = data["voxelspacing"]
 
             assert pred.shape == ref.shape
-            assert simplex(pred)  # Predictions could be one-hot or probabilities
-            assert one_hot(ref), (ref.shape)
+            assert is_simplex(pred)  # Predictions could be one-hot or probabilities
+            assert is_one_hot(ref), (ref.shape)
 
             B, K_, *scan_shape = ref.shape
             assert K == K_
