@@ -116,8 +116,8 @@ class VolumeDataset(Dataset):
         self.K: int = K
 
         if not quiet:
-            print(f"{tc.BLUE}>>> Initializing Volume dataset with {len(self.stems)} volumes{tc.RESET}")
-            print(f">>  {self.ref_folder}, {self.pred_folder}")
+            print(f'{tc.BLUE}>>> Initializing Volume dataset with {len(self.stems)} volumes{tc.RESET}')
+            print(f'>>  {self.ref_folder}, {self.pred_folder}')
             # pprint(self.stems)
 
         assert all((self.ref_folder / (s + self.ref_extension)).exists()
@@ -126,7 +126,7 @@ class VolumeDataset(Dataset):
                    for s in self.stems), self.pred_folder
 
         if not quiet:
-            print(f"{tc.GREEN}> All stems found in both folders{tc.RESET}")
+            print(f'{tc.GREEN}> All stems found in both folders{tc.RESET}')
 
     def __len__(self):
         return len(self.stems)
@@ -161,13 +161,13 @@ class VolumeDataset(Dataset):
 
 
 def compute_metrics(loader, metrics: dict[str, Tensor], device, K: int) -> dict[str, Tensor]:
-    desc = ">> Computing"
+    desc = '>> Computing'
     tq_iter = tqdm_(enumerate(loader), total=len(loader), desc=desc)
     with torch.no_grad():
         for j, data in tq_iter:
-            ref: Tensor = class2one_hot(data["ref"].to(device), K=K)
-            pred: Tensor = class2one_hot(data["pred"].to(device), K=K)
-            voxelspacing: tuple[float, ...] = data["voxelspacing"]
+            ref: Tensor = class2one_hot(data['ref'].to(device), K=K)
+            pred: Tensor = class2one_hot(data['pred'].to(device), K=K)
+            voxelspacing: tuple[float, ...] = data['voxelspacing']
 
             assert pred.shape == ref.shape
             assert is_simplex(pred)  # Predictions could be one-hot or probabilities
@@ -183,15 +183,15 @@ def compute_metrics(loader, metrics: dict[str, Tensor], device, K: int) -> dict[
                 h = border_metrics(pred, ref,
                                    element_size=tuple(float(e) for e in voxelspacing))
 
-                if "3d_hd" in metrics.keys():
-                    metrics["3d_hd"][j] = h.Hausdorff
-                if "3d_hd95" in metrics.keys():
-                    metrics["3d_hd95"][j] = (h.Hausdorff95_1_to_2 + h.Hausdorff95_2_to_1) / 2
-                if "3d_assd" in metrics.keys():
-                    metrics["3d_assd"][j] = h.AverageSymmetricSurfaceDistance
+                if '3d_hd' in metrics.keys():
+                    metrics['3d_hd'][j] = h.Hausdorff
+                if '3d_hd95' in metrics.keys():
+                    metrics['3d_hd95'][j] = (h.Hausdorff95_1_to_2 + h.Hausdorff95_2_to_1) / 2
+                if '3d_assd' in metrics.keys():
+                    metrics['3d_assd'][j] = h.AverageSymmetricSurfaceDistance
 
-            tq_iter.set_postfix({"batch_shape": list(pred.shape),
-                                 "voxelspacing": [f"{float(e):.3f}" for e in voxelspacing]})
+            tq_iter.set_postfix({'batch_shape': list(pred.shape),
+                                 'voxelspacing': [f'{float(e):.3f}' for e in voxelspacing]})
 
     return metrics
 
@@ -202,21 +202,21 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--pred_folder', type=Path, required=True)
 
     parser.add_argument('--ref_extension', type=str, required=True,
-                        choices=[".nii.gz", ".png", ".npy", ".nii"])
+                        choices=['.nii.gz', '.png', '.npy', '.nii'])
     parser.add_argument('--pred_extension', type=str,
-                        choices=[".nii.gz", ".png", ".npy", ".nii"])
+                        choices=['.nii.gz', '.png', '.npy', '.nii'])
 
     parser.add_argument('--num_classes', '-K', '-C', type=int, required=True)
     parser.add_argument('--metrics', type=str, nargs='+',
-                        choices=["3d_hd", "3d_hd95", "3d_assd"],
-                        help="The metrics to compute.")
+                        choices=['3d_hd', '3d_hd95', '3d_assd'],
+                        help='The metrics to compute.')
 
-    parser.add_argument("--cpu", action="store_true")
-    parser.add_argument("--overwrite", action="store_true",
-                        help="Overwrite existing metrics output, without prompt.")
+    parser.add_argument('--cpu', action='store_true')
+    parser.add_argument('--overwrite', action='store_true',
+                        help='Overwrite existing metrics output, without prompt.')
 
     parser.add_argument('--save_folder', type=Path, default=None,
-                        help="The folder where to save the metrics")
+                        help='The folder where to save the metrics')
 
     args = parser.parse_args()
 
@@ -231,12 +231,12 @@ def get_args() -> argparse.Namespace:
 def main() -> None:
     args = get_args()
 
-    device = torch.device("cuda") if torch.cuda.is_available() and not args.cpu else torch.device("cpu")
+    device = torch.device('cuda') if torch.cuda.is_available() and not args.cpu else torch.device('cpu')
     K: int = args.num_classes
 
     # p.stem does not handle well .nii.gz:
     stems: list[str] = list(map(lambda p: str(p.name).removesuffix(args.ref_extension),
-                                args.ref_folder.glob(f"*{args.ref_extension}")))
+                                args.ref_folder.glob(f'*{args.ref_extension}')))
 
     total_volumes = len(stems)
     metrics: dict[str, Tensor] = defaultdict(lambda: torch.zeros((total_volumes, K),
@@ -255,14 +255,14 @@ def main() -> None:
 
     metrics = compute_metrics(loader, metrics, device, K)
 
-    print(f">>> {args.pred_folder}")
+    print(f'>>> {args.pred_folder}')
     for key, v in metrics.items():
         print(key, v.mean(dim=0).cpu().numpy())
 
     if args.save_folder:
         savedir: Path = Path(args.save_folder)
         for key, e in metrics.items():
-            dest: Path = savedir / f"{args.mode}{'_' if args.mode else ''}{key}.npy"
+            dest: Path = savedir / f'{args.mode}{"_" if args.mode else ""}{key}.npy'
             assert not dest.exists() or args.overwrite
 
             np.save(dest, e.cpu().numpy())

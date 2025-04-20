@@ -93,11 +93,11 @@ if __name__ == "__main__":
 
     # Compute minimum distances using our optimized kernel
     min_distances = min_sqdist(t1, t2)
-    print("Validating against naive implementation...")
+    print('Validating against naive implementation...')
 
     # Check if results are close
     is_close = torch.allclose(min_distances, min_distances_naive, rtol=1e-5, atol=1e-5)
-    print(f"Results match: {is_close}")
+    print(f'Results match: {is_close}')
     if not is_close:
         max_diff = (min_distances - min_distances_naive).abs().max().item()
-        print(f"Maximum difference: {max_diff}")
+        print(f'Maximum difference: {max_diff}')
