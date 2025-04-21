@@ -71,6 +71,9 @@ def batchify_input_output(f):
         assert all(isinstance(arg, Tensor) for arg in args)
         args: list[Tensor]
         ndim = args[0].ndim
+        if ndim == 1:
+            raise ValueError(f'Provided tensors have 1 dim ({args[0].shape}), should be at least 2.')
+
         if ndim == 2:
             args = [arg.unsqueeze(0) for arg in args]
         elif ndim >= 4:
