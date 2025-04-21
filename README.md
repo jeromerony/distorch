@@ -30,10 +30,22 @@ If you are using `anaconda` for your environment, you can solve this by installi
 conda install 'conda-forge::gxx>=14.2.0'
 ```
 
-## (and others)
+## Overview
 
-This repository contains the code of our MIDL 2025 submission to the short paper track. It implements the Hausdorff distance, and similar distance based metrics, with GPU accelerated frameworks (currently [`KeOps`](https://www.kernel-operations.io/) and [`Triton`](https://github.com/triton-lang/triton)).
+This repository contains the code library presented in our MIDL 2025 submission to the short paper track.
+It implements the Hausdorff distance, and similar distance based metrics, with GPU accelerated frameworks (currently [`KeOps`](https://www.kernel-operations.io/) and [`Triton`](https://github.com/triton-lang/triton)).
 
+This library is destined to researchers who want to evaluate the quality of segmentations (2D or 3D) w.r.t. a ground truth, according to distance metrics such as the Hausdorff distance, the Average Symmetric Surface Distance (ASSD), etc.
+In particular, doing this evaluation for 3D volumes can be challenging in terms of computation time, requiring several seconds per volume with CPU implementations.
+
+Here, we provide an implementation of these metrics that leverages CUDA, managing to be faster or on-par with other libraries.
+The goal of our implementation is 3-fold:
+- be fast on GPU for 3D volumes
+- be easy to install, minimizing the amount of dependencies
+- be easy to inspect
+Additional care is taken to provide accurate results, although the ASSD metric is currently not evaluated correctly by any library, including ours. More details in [CORRECTNESS.md](CORRECTNESS.md).
+
+Our implementation is particularly fast on GPU, especially for small objects, such as the WMH 1.0 dataset.
 Citing Table 1 from our submission, on three datasets (SegTHOR, OAI, WMH 1.0):
 
 |                   | Runtime (ms) | Mem. (GiB) | Runtime (ms) | Mem. (GiB) | Runtime (ms) | Mem. (GiB) |
