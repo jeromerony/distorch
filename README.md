@@ -40,9 +40,10 @@ In particular, doing this evaluation for 3D volumes can be challenging in terms 
 
 Here, we provide an implementation of these metrics that leverages CUDA, managing to be faster or on-par with other libraries.
 The goal of our implementation is 3-fold:
-- be fast on GPU for 3D volumes
-- be easy to install, minimizing the amount of dependencies
-- be easy to inspect
+- be fast on GPU for 3D volumes;
+- be easy to install, minimizing the amount of dependencies;
+- be easy to inspect.
+
 Additional care is taken to provide accurate results, although the ASSD metric is currently not evaluated correctly by any library, including ours. More details in [CORRECTNESS.md](CORRECTNESS.md).
 
 Our implementation is particularly fast on GPU, especially for small objects, such as the WMH 1.0 dataset.
