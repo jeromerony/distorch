@@ -4,6 +4,32 @@
 Additionally, current development is done on the `main` branch.
 This will change once we reach a stable version and produce a release on PyPI.**
 
+## Installation
+
+This library relies on CUDA, through `Triton` and/or `KeOps` packages.
+It is expected that `PyTorch` is installed with GPU support, which can be verified with
+`python -c "import torch; print(torch.cuda.is_available())"`.
+We only provide minimal CPU support, mainly for debugging purposes.
+
+To install the library with `pip`:
+```bash
+pip install git+https://github.com/jeromerony/distorch.git
+```
+or clone the repository, `cd` into it and run `pip install .`.
+
+If you want to install the library in editable mode, with IDE indexing compatibility:
+```bash
+pip install -e . --config-settings editable_mode=compat
+```
+
+### KeOps compatibility
+
+You might run into compilation issues involving `KeOps`, [which requires a C++ compiler](https://www.kernel-operations.io/keops/python/installation.html#compilation-issues).
+If you are using `anaconda` for your environment, you can solve this by installing `g++` in your environment (for `KeOps=2.3`):
+```bash
+conda install 'conda-forge::gxx>=14.2.0'
+```
+
 ## (and others)
 
 This repository contains the code of our MIDL 2025 submission to the short paper track. It implements the Hausdorff distance, and similar distance based metrics, with GPU accelerated frameworks (currently [`KeOps`](https://www.kernel-operations.io/) and [`Triton`](https://github.com/triton-lang/triton)).
@@ -19,8 +45,7 @@ Citing Table 1 from our submission, on three datasets (SegTHOR, OAI, WMH 1.0):
 | Ours (Keops)   | 29.1         | 1.7        | 26.8         | 0.62       | 1.4          | 0.06       |
 | Ours (Triton)  | 29.5         | 1.7        | 35.4         | 0.62       | 1.4          | 0.06       |
 
-## Installation
-todo
+
 ## Usage
 
 The core functions for metrics computation in the [`metrics.py`](distorch/metrics.py) file, but we also provide some utility to compute the desired metrics between two folders:
