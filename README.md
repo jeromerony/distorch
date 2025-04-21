@@ -36,14 +36,14 @@ This repository contains the code of our MIDL 2025 submission to the short paper
 
 Citing Table 1 from our submission, on three datasets (SegTHOR, OAI, WMH 1.0):
 
-|                | Runtime (ms) | Mem. (GiB) | Runtime (ms) | Mem. (GiB) | Runtime (ms) | Mem. (GiB) |
-|----------------|--------------|------------|--------------|------------|--------------|------------|
-| MedPy          | 2.6 × 10⁴    | NA         | 1.8 × 10⁴    | NA         | 296          | NA         |
-| MeshMetrics    | 8.5 × 10³    | NA         | 1.2 × 10⁴    | NA         | 436          | NA         |
-| Monai          | 723          | 4.7        | 1.7 × 10³    | 2.1        | 52.2         | 0.52       |
-| Monai w/ cuCIM | 24.9         | 2.6        | 22.4         | 0.95       | 6.3          | 0.09       |
-| Ours (Keops)   | 29.1         | 1.7        | 26.8         | 0.62       | 1.4          | 0.06       |
-| Ours (Triton)  | 29.5         | 1.7        | 35.4         | 0.62       | 1.4          | 0.06       |
+|                   | Runtime (ms) | Mem. (GiB) | Runtime (ms) | Mem. (GiB) | Runtime (ms) | Mem. (GiB) |
+|-------------------|-------------:|-----------:|-------------:|-----------:|-------------:|-----------:|
+| MedPy             |    2.6 × 10⁴ |         NA |    1.8 × 10⁴ |         NA |          296 |         NA |
+| MeshMetrics       |    8.5 × 10³ |         NA |    1.2 × 10⁴ |         NA |          436 |         NA |
+| Monai             |          723 |        4.7 |    1.7 × 10³ |        2.1 |         52.2 |       0.52 |
+| Monai w/ cuCIM    |         24.9 |        2.6 |         22.4 |       0.95 |          6.3 |       0.09 |
+| DisTorch (Keops)  |         29.1 |        1.7 |         26.8 |       0.62 |          1.4 |       0.06 |
+| DisTorch (Triton) |         29.5 |        1.7 |         35.4 |       0.62 |          1.4 |       0.06 |
 
 
 ## Usage
