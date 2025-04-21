@@ -1,3 +1,5 @@
+import dataclasses
+import functools
 import math
 from typing import Optional
 
@@ -61,3 +63,34 @@ def zero_padded_nonnegative_quantile(x: Tensor, q: float, n: int) -> Tensor:
     else:
         adjusted_q = (position - (n - k)) / (k - 1)
         return torch.quantile(x, q=adjusted_q)
+
+
+def batchify_input_output(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        assert all(isinstance(arg, Tensor) for arg in args)
+        args: list[Tensor]
+        ndim = args[0].ndim
+        if ndim == 2:
+            args = [arg.unsqueeze(0) for arg in args]
+        elif ndim >= 4:
+            batch_shape = args[0].shape[:-3]
+            args = [arg.flatten(start_dim=0, end_dim=-4) for arg in args]
+
+        output = f(*args, **kwargs)
+
+        if ndim == 2 or ndim >= 4:
+            debatchify = (lambda t: t.squeeze(0)) if ndim == 2 else (lambda t: t.unflatten(0, batch_shape))
+            if isinstance(output, Tensor):
+                output = debatchify(output)
+            elif isinstance(output, (list, tuple)):
+                output = type(output)(map(debatchify, output))
+            elif isinstance(output, dict):
+                output = {k: debatchify(v) for k, v in output.items()}
+            elif dataclasses.is_dataclass(output):
+                for field in dataclasses.fields(output):
+                    setattr(output, field.name, debatchify(getattr(output, field.name)))
+
+        return output
+
+    return wrapper

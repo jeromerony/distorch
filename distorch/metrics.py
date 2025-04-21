@@ -7,7 +7,7 @@ from torch import Tensor
 
 from distorch.boundary import is_border_element, is_surface_vertex
 from distorch.min_pairwise_distance import minimum_distances
-from distorch.utils import generate_coordinates, zero_padded_nonnegative_quantile
+from distorch.utils import batchify_input_output, generate_coordinates, zero_padded_nonnegative_quantile
 
 
 @dataclass
@@ -20,6 +20,7 @@ class DistanceMetrics:
     AverageSymmetricSurfaceDistance: Tensor
 
 
+@batchify_input_output
 def set_metrics(set1: Tensor,
                 set2: Tensor,
                 /,
@@ -27,13 +28,6 @@ def set_metrics(set1: Tensor,
     assert set1.shape == set2.shape
     assert set1.dtype == torch.bool
     assert set2.dtype == torch.bool
-
-    ndim = set1.ndim
-    if ndim == 2:
-        set1, set2 = set1.unsqueeze(0), set2.unsqueeze(0)
-    elif ndim >= 4:
-        batch_shape = set1.shape[:-3]
-        set1, set2 = set1.flatten(start_dim=0, end_dim=-4), set2.flatten(start_dim=0, end_dim=-4)
 
     coords_shape = set1.shape[1:]
     coords = generate_coordinates(coords_shape, device=set1.device, element_size=element_size)
@@ -69,11 +63,6 @@ def set_metrics(set1: Tensor,
         metrics['AverageSymmetricSurfaceDistance'].append((sum_dist_1 + sum_dist_2) / (n1 + n2))
 
     metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
-    if ndim == 2:
-        metrics = {k: v.squeeze(0) for k, v in metrics.items()}
-    elif ndim >= 4:
-        metrics = {k: v.unflatten(0, batch_shape) for k, v in metrics.items()}
-
     return DistanceMetrics(**metrics)
 
 
