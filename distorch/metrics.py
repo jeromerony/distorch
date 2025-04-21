@@ -32,8 +32,7 @@ def set_metrics(set1: Tensor,
     coords_shape = set1.shape[1:]
     coords = generate_coordinates(coords_shape, device=set1.device, element_size=element_size)
 
-    zero = torch.tensor(0., device=set1.device)
-    nan = torch.tensor(float('nan'), device=set1.device)
+    zero, nan = set1.new_tensor(0, dtype=torch.float), set1.new_tensor(float('nan'), dtype=torch.float)
     metrics = {f.name: [] for f in dataclasses.fields(DistanceMetrics)}
     for s1, s2 in zip(set1, set2):
         elem_1 = coords[s1]
