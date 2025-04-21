@@ -49,7 +49,7 @@ Citing Table 1 from our submission, on three datasets (SegTHOR, OAI, WMH 1.0):
 ## Usage
 
 The core functions for metrics computation in the [`metrics.py`](distorch/metrics.py) file, but we also provide some utility to compute the desired metrics between two folders:
-```
+```bash
 >>> python compute_metrics.py --help
 usage: compute_metrics.py [-h] --ref_folder REF_FOLDER --pred_folder PRED_FOLDER --ref_extension {.nii.gz,.png,.npy,.nii} [--pred_extension {.nii.gz,.png,.npy,.nii}]
                           --num_classes NUM_CLASSES [--metrics {3d_hd,3d_hd95,3d_assd} [{3d_hd,3d_hd95,3d_assd} ...]] [--cpu] [--overwrite] [--save_folder SAVE_FOLDER]
@@ -72,7 +72,7 @@ options:
 ```
 
 With an example invocation:
-```
+```bash
 >>>  CUDA_VISIBLE_DEVICES=0 python -O compute_metrics.py --ref_folder ~/code/constrained_cnn/data/OAI/test/gt_3d --pred_folder ~/code/constrained_cnn/results/OAI/cross_entropy/best_epoch/test_3d/ --ref_extension .nii.gz -K 5 --metrics 3d_hd 3d_hd95 3d_assd
 
 {'cpu': False,
