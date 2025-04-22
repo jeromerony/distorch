@@ -39,7 +39,7 @@ However, there are some limits to this approximation. We can build edge cases wh
   <img src="figures/vertices_approx_ASD.png" />
 </p>
 
-Here we can compute the values of $\mathrm{ASD}_{a\rightarrow b}$ and $\mathrm{ASD}_{a\rightarrow b}$ manually:
+Here we can compute the values of $`\mathrm{ASD}_{a\rightarrow b}`$ and $`\mathrm{ASD}_{a\rightarrow b}`$ manually:
 - $`\mathrm{ASD}_{a\rightarrow b} = \frac14(3\times 0 + i_1) = \frac14\times 2\int_{t=0}^{0.5}t dt = \frac{1}{16}`$
 - $`\mathrm{ASD}_{b\rightarrow a} = \frac16(3\times 0 + i_2 + i_4 + i_3) = \frac16 (2\int_{t=0}^{1}t dt + \int_{t=0}^1 1 dt)= \frac16(2\times \frac12+1)=\frac13`$
 - $`\mathrm{ASSD}(a,b) = \frac{4\times\frac1{16} + 6\times\frac13}{4 + 6} = \frac{9}{40}=0.225`$
