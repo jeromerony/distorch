@@ -15,11 +15,15 @@ and it does not conserve perimeter.
 
 One of the metrics used to compare two segmentations is the Average Surface Distance (ASD), which is directed, or its symmetric variant: ASSD.
 Computing the ASD from a segmentation $\Omega_a$ to a segmentation $\Omega_b$, noted $\mathrm{ASD}_{a\rightarrow b}$, requires computing the following integral:
-$$\mathrm{ASD}_{a\rightarrow b} = \frac{1}{|\partial \Omega_a|}\int_{x\in\partial \Omega_a}\|x-\mathcal{P}_{\partial\Omega_b}(x)\|_2 dx$$
+```math
+\mathrm{ASD}_{a\rightarrow b} = \frac{1}{|\partial \Omega_a|}\int_{x\in\partial \Omega_a}\|x-\mathcal{P}_{\partial\Omega_b}(x)\|_2 dx
+```
 where $\partial \Omega_a$ is the boundary of $\Omega_a$, $|\partial \Omega_a|$ is its length and $\mathcal{P}_{\partial\Omega_b}$ is the projection operator onto the boundary $\partial\Omega_b$.
 
 The ASSD is usually defined as:
-$$\mathrm{ASSD}(a, b) = \frac{|\partial \Omega_a| \mathrm{ASD}_{a\rightarrow b} + |\partial \Omega_b| \mathrm{ASD}_{b\rightarrow a}}{|\partial \Omega_a| + |\partial \Omega_b|}$$
+```math
+\mathrm{ASSD}(a, b) = \frac{|\partial \Omega_a| \mathrm{ASD}_{a\rightarrow b} + |\partial \Omega_b| \mathrm{ASD}_{b\rightarrow a}}{|\partial \Omega_a| + |\partial \Omega_b|}
+```
 
 ### Approximation
 
@@ -36,8 +40,8 @@ However, there are some limits to this approximation. We can build edge cases wh
 </p>
 
 Here we can compute the values of $\mathrm{ASD}_{a\rightarrow b}$ and $\mathrm{ASD}_{a\rightarrow b}$ manually:
-- $\mathrm{ASD}_{a\rightarrow b} = \frac14(3\times 0 + i_1) = \frac14\times 2\int_{t=0}^{0.5}t dt = \frac{1}{16}$
-- $\mathrm{ASD}_{b\rightarrow a} = \frac16(3\times 0 + i_2 + i_4 + i_3) = \frac16 (2\int_{t=0}^{1}t dt + \int_{t=0}^1 1 dt)= \frac16(2\times \frac12+1)=\frac13$
-- $\mathrm{ASSD}(a,b) = \frac{4\times\frac1{16} + 6\times\frac13}{4 + 6} = \frac{9}{40}=0.225$
+- $`\mathrm{ASD}_{a\rightarrow b} = \frac14(3\times 0 + i_1) = \frac14\times 2\int_{t=0}^{0.5}t dt = \frac{1}{16}`$
+- $`\mathrm{ASD}_{b\rightarrow a} = \frac16(3\times 0 + i_2 + i_4 + i_3) = \frac16 (2\int_{t=0}^{1}t dt + \int_{t=0}^1 1 dt)= \frac16(2\times \frac12+1)=\frac13`$
+- $`\mathrm{ASSD}(a,b) = \frac{4\times\frac1{16} + 6\times\frac13}{4 + 6} = \frac{9}{40}=0.225`$
 
-In comparison, using pixel vertices to approximate the boundary, we get $\mathrm{ASD}_{a\rightarrow b}=0$, $\mathrm{ASD}_{b\rightarrow a}=\frac13$ and $\mathrm{ASSD}(a,b)=0.2$.
+In comparison, using pixel vertices to approximate the boundary, we get $`\mathrm{ASD}_{a\rightarrow b}=0`$, $`\mathrm{ASD}_{b\rightarrow a}=\frac13`$ and $`\mathrm{ASSD}(a,b)=0.2`$.
