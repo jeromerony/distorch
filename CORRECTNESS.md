@@ -4,8 +4,7 @@ In DisTorch, we chose to represent each pixel by its contour.
 In other words, the whole pixel belongs to the segmentation.
 This differs from several libraries, where each pixel is represented by its center point.
 We argue this poses many problems.
-In particular, this does not conserve area, especially for single pixels as shown below, where the area becomes 0.
-and it does not conserve perimeter.
+In particular, this does not conserve area, especially for single pixels as shown below, where the area becomes 0, and it does not conserve perimeter.
 
 <p align="center">
   <img src="figures/single_pixel.png" />
