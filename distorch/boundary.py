@@ -63,7 +63,7 @@ def is_border_element(images: Tensor, /) -> Tensor:
 
 
 @batchify_input_output
-def is_surface_vertex(images: Tensor, /) -> Tensor:
+def is_surface_vertex(images: Tensor, /, return_length: bool = False) -> Tensor:
     """
     For a batch of binary images of shape (b, h, w) or 3d volumes of shape (b, h, w, d), computes surface vertices based
     on counting neighbors. For every pixel / voxel in the input, returns the grid of vertices forming the borders of
@@ -86,11 +86,13 @@ def is_surface_vertex(images: Tensor, /) -> Tensor:
     ----------
     images : Tensor
         Boolean tensor where True values indicate the region for which to compute the surface vertices.
+    return_length : bool
+        If True, returns the "length" of surface vertices instead of a binary mask.
 
     Returns
     -------
     is_vertex : Tensor
-        Boolean tensor indicating surface vertices.
+        Boolean tensor indicating surface vertices. If `return_length` is true, returns int8 tensor.
         For any dimension of size d, the output has a corresponding dimension of size d+1.
 
     Examples
@@ -113,16 +115,23 @@ def is_surface_vertex(images: Tensor, /) -> Tensor:
     """
     device = images.device
     dtype = torch.uint8 if device.type == 'cpu' else torch.float16
-    weight = torch.ones((), dtype=dtype, device=images.device)
+    images_converted = images.type(dtype, non_blocking=True)
+    weight = images_converted.new_ones(())
 
     if images.ndim == 3:  # 2d images
-        neighbors = F.conv2d(images.to(dtype).unsqueeze(1),
-                             weight=weight.expand(1, 1, 2, 2),
-                             stride=1, padding=1).squeeze(1)
-        is_vertex = (neighbors > 0).logical_and_(neighbors < 4)
+
+        diag_weight = images_converted.new_tensor([[[1, 0],
+                                                    [0, 1]],
+                                                   [[0, 1],
+                                                    [1, 0]]])
+        diag_conv = F.conv2d(images_converted.unsqueeze(1), weight=diag_weight.unsqueeze(1), stride=1, padding=1)
+        is_vertex = diag_conv.amax(dim=1).bool()
+        if return_length:
+            is_diag_vertex = ((diag_conv == 2) & torch.flip(diag_conv == 0, dims=(1,))).any(dim=1)
+            is_vertex = is_vertex.type(torch.int8).add_(is_diag_vertex)
 
     elif images.ndim == 4:  # 3d volumes (..., h, w, d) : all leading dimensions are batch
-        neighbors = F.conv3d(images.to(dtype).unsqueeze(1),
+        neighbors = F.conv3d(images_converted.unsqueeze(1),
                              weight=weight.expand(1, 1, 2, 2, 2),
                              stride=1, padding=1).squeeze(1)
         is_vertex = (neighbors > 0).logical_and_(neighbors < 8)
@@ -131,3 +140,13 @@ def is_surface_vertex(images: Tensor, /) -> Tensor:
         raise ValueError(f'Input should be Tensor with 3 or 4 dimensions: supplied {images.shape}')
 
     return is_vertex
+
+
+if __name__ == '__main__':
+    A = torch.tensor([[1, 0, 0, 0],
+                      [0, 1, 1, 0],
+                      [0, 1, 0, 0],
+                      [0, 0, 0, 0]], dtype=torch.bool)
+
+    print(is_surface_vertex(A).int())
+    print(is_surface_vertex(A, return_length=True).int())
