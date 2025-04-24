@@ -116,7 +116,6 @@ def is_surface_vertex(images: Tensor, /, return_length: bool = False) -> Tensor:
     device = images.device
     dtype = torch.uint8 if device.type == 'cpu' else torch.float16
     images_converted = images.type(dtype, non_blocking=True)
-    weight = images_converted.new_ones(())
 
     if images.ndim == 3:  # 2d images
 
@@ -132,9 +131,13 @@ def is_surface_vertex(images: Tensor, /, return_length: bool = False) -> Tensor:
             is_vertex = is_vertex.type(torch.int8).add_(is_diag_vertex)
 
     elif images.ndim == 4:  # 3d volumes (..., h, w, d) : all leading dimensions are batch
-        neighbors = F.conv3d(images_converted.unsqueeze(1),
-                             weight=weight.expand(1, 1, 2, 2, 2),
-                             stride=1, padding=1).squeeze(1)
+        diag_weight = images_converted.new_zeros(4, 2, 2, 2)
+        diag_weight[[0, 0], [0, 1], [0, 1], [0, 1]] = 1
+        diag_weight[[1, 1], [1, 0], [0, 1], [0, 1]] = 1
+        diag_weight[[2, 2], [0, 1], [0, 1], [1, 0]] = 1
+        diag_weight[[3, 3], [1, 0], [0, 1], [1, 0]] = 1
+        diag_conv = F.conv3d(images_converted.unsqueeze(1), weight=diag_weight.unsqueeze(1), stride=1, padding=1)
+        neighbors = diag_conv.sum(dim=1)
         is_vertex = (neighbors > 0).logical_and_(neighbors < 8)
 
     else:
