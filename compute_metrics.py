@@ -44,7 +44,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from distorch.metrics import border_metrics
+from distorch.metrics import boundary_metrics
 
 
 # Assert utils
@@ -177,7 +177,7 @@ def compute_metrics(loader, metrics: dict[str, Tensor], device, K: int) -> dict[
             assert B == 1, (B, ref.shape)
 
             if set(metrics.keys()).intersection({'3d_hd', '3d_hd95', '3d_assd'}):
-                h = border_metrics(pred, ref, element_size=tuple(float(e) for e in voxelspacing))
+                h = boundary_metrics(pred, ref, element_size=tuple(float(e) for e in voxelspacing))
 
                 if '3d_hd' in metrics.keys():
                     metrics['3d_hd'][j] = h.Hausdorff

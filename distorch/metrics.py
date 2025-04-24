@@ -65,35 +65,13 @@ def set_metrics(set1: Tensor,
     return DistanceMetrics(**metrics)
 
 
-def border_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> DistanceMetrics:
+def boundary_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> DistanceMetrics:
     """
-    Computes the Hausdorff distances between batches of images (or 3d volumes). The images should be binary, where True
-    indicates that an element (i.e. pixel/voxel) belongs to the set for which we want to compute the Hausdorff distance.
-
-    Parameters
-    ----------
-    images1 : Tensor
-        Boolean tensor indicating the membership to the first set.
-    images2 : Tensor
-        Boolean tensor indicating the membership to the second set.
-
-    Returns
-    -------
-    metrics : dict[str, Tensor]
-        Dictionary of metrics where each entry correspond to a metric for all the element in the batch.
-
-    """
-    set1, set2 = is_border_element(images1), is_border_element(images2)
-    return set_metrics(set1, set2, **kwargs)
-
-
-def surface_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> DistanceMetrics:
-    """
-    Computes metrics between the surfaces of two sets. These metrics include the surface Hausdorff distance, the
-    directed average surface distances and the quantile of the directed surface distances (also called Hausdorff 95%).
-    This function computes the distances between the true surfaces of the sets instead of using the center of the
-    element. For instance, an isolated pixel has 4 edges and 4 vertices, with an area of 1.
-    This implementation uses grid-aligned, regularly spaced vertices to represent surfaces. Therefore, a straight line
+    Computes metrics between the boundaries of two sets. These metrics include the Hausdorff distance and it 95%
+    variant, the average surface distances and their symmetric variant.
+    This function uses the vertices of the elements (i.e. pixels, voxels) instead of the center of the element.
+    For instance, an isolated pixel has 4 edges and 4 vertices, with an area of 1.
+    This implementation uses grid-aligned, regularly spaced vertices to represent boundaries. Therefore, a straight line
     of length 5 (in pixel space) is formed by 6 vertices.
 
     Parameters
@@ -110,4 +88,28 @@ def surface_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> DistanceMe
 
     """
     set1, set2 = is_surface_vertex(images1), is_surface_vertex(images2)
+    return set_metrics(set1, set2, **kwargs)
+
+
+def pixel_center_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> DistanceMetrics:
+    """
+    Computes distance between batches of images (or 3d volumes). The images should be binary, where True
+    indicates that an element (i.e. pixel/voxel) belongs to the set for which we want to compute the Hausdorff distance.
+    This function uses the center of elements (i.e. pixels, voxels) to represent them. For instance, an isolated pixel
+    is represented by one point. This is the representation commonly used in libraries such as Monai or MedPy.
+
+    Parameters
+    ----------
+    images1 : Tensor
+        Boolean tensor indicating the membership to the first set.
+    images2 : Tensor
+        Boolean tensor indicating the membership to the second set.
+
+    Returns
+    -------
+    metrics : dict[str, Tensor]
+        Dictionary of metrics where each entry correspond to a metric for all the element in the batch.
+
+    """
+    set1, set2 = is_border_element(images1), is_border_element(images2)
     return set_metrics(set1, set2, **kwargs)
