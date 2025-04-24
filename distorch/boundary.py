@@ -125,7 +125,8 @@ def is_surface_vertex(images: Tensor, /, return_length: bool = False) -> Tensor:
                                                    [[0, 1],
                                                     [1, 0]]])
         diag_conv = F.conv2d(images_converted.unsqueeze(1), weight=diag_weight.unsqueeze(1), stride=1, padding=1)
-        is_vertex = diag_conv.amax(dim=1).bool()
+        neighbors = diag_conv.sum(dim=1)
+        is_vertex = (neighbors > 0).logical_and_(neighbors < 4)
         if return_length:
             is_diag_vertex = ((diag_conv == 2) & torch.flip(diag_conv == 0, dims=(1,))).any(dim=1)
             is_vertex = is_vertex.type(torch.int8).add_(is_diag_vertex)
@@ -145,7 +146,7 @@ def is_surface_vertex(images: Tensor, /, return_length: bool = False) -> Tensor:
 if __name__ == '__main__':
     A = torch.tensor([[1, 0, 0, 0],
                       [0, 1, 1, 0],
-                      [0, 1, 0, 0],
+                      [0, 1, 1, 0],
                       [0, 0, 0, 0]], dtype=torch.bool)
 
     print(is_surface_vertex(A).int())
