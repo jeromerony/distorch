@@ -18,13 +18,17 @@ class DistanceMetrics:
     AverageSurfaceDistance_1_to_2: Tensor
     AverageSurfaceDistance_2_to_1: Tensor
     AverageSymmetricSurfaceDistance: Tensor
+    NormalizedSurfaceDistance_1_to_2: Tensor
+    NormalizedSurfaceDistance_2_to_1: Tensor
+    NormalizedSymmetricSurfaceDistance: Tensor
 
 
 @batchify_input_output
 def set_metrics(set1: Tensor,
                 set2: Tensor,
                 /,
-                element_size: Optional[tuple[int | float, ...]] = None) -> DistanceMetrics:
+                element_size: Optional[tuple[int | float, ...]] = None,
+                distance_threshold: float = 1) -> DistanceMetrics:
     assert set1.shape == set2.shape
     assert set1.dtype == torch.bool
     assert set2.dtype == torch.bool
@@ -60,6 +64,15 @@ def set_metrics(set1: Tensor,
         metrics['AverageSurfaceDistance_1_to_2'].append(sum_dist_1 / n1)
         metrics['AverageSurfaceDistance_2_to_1'].append(sum_dist_2 / n2)
         metrics['AverageSymmetricSurfaceDistance'].append((sum_dist_1 + sum_dist_2) / (n1 + n2))
+
+        dist_1_to_2_smaller = dist_1_to_2 <= distance_threshold
+        dist_2_to_1_smaller = dist_2_to_1 <= distance_threshold
+        k1, k2 = dist_1_to_2_smaller.size(0), dist_2_to_1_smaller.size(0)
+        num_smaller_1_to_2 = dist_1_to_2_smaller.sum() + (n1 - k1)
+        num_smaller_2_to_1 = dist_2_to_1_smaller.sum() + (n2 - k2)
+        metrics['NormalizedSurfaceDistance_1_to_2'].append(num_smaller_1_to_2 / n1)
+        metrics['NormalizedSurfaceDistance_2_to_1'].append(num_smaller_2_to_1 / n2)
+        metrics['NormalizedSymmetricSurfaceDistance'].append((num_smaller_1_to_2 + num_smaller_2_to_1) / (n1 + n2))
 
     metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
     return DistanceMetrics(**metrics)
