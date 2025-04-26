@@ -22,7 +22,11 @@ If you want to install the library in editable mode, with IDE indexing compatibi
 pip install -e . --config-settings editable_mode=compat
 ```
 
-### KeOps compatibility
+### KeOps optional dependency
+
+`KeOps` is now an optional dependency. It provides marginally better performance compared to using the `Triton` backend.
+However, we find that fixing dependency issues that might arise from installing `KeOps` does not justify the small performance gain.
+It can be useful for developing, as writing `Triton` kernels can be cumbersome.
 
 You might run into compilation issues involving `KeOps`, [which requires a C++ compiler](https://www.kernel-operations.io/keops/python/installation.html#compilation-issues).
 If you are using `anaconda` for your environment, you can solve this by installing `g++` in your environment (for `KeOps=2.3`):
@@ -47,7 +51,7 @@ The goal of our implementation is 3-fold:
 Additional care is taken to provide accurate results, although the ASSD metric is currently not evaluated correctly by any library, including ours. More details in [CORRECTNESS.md](CORRECTNESS.md).
 
 Our implementation is particularly fast on GPU, especially for small objects, such as the WMH 1.0 dataset.
-Citing Table 1 from our submission, on three datasets (SegTHOR, OAI, WMH 1.0):
+Below is a comparison on three datasets (SegTHOR, OAI, WMH 1.0) with runtime and GPU memory usage:
 
 |                   | Runtime (ms) | Mem. (GiB) | Runtime (ms) | Mem. (GiB) | Runtime (ms) | Mem. (GiB) |
 |-------------------|-------------:|-----------:|-------------:|-----------:|-------------:|-----------:|
@@ -55,8 +59,8 @@ Citing Table 1 from our submission, on three datasets (SegTHOR, OAI, WMH 1.0):
 | MeshMetrics       |    8.5 × 10³ |         NA |    1.2 × 10⁴ |         NA |          436 |         NA |
 | Monai             |          723 |        4.7 |    1.7 × 10³ |        2.1 |         52.2 |       0.52 |
 | Monai w/ cuCIM    |         24.9 |        2.6 |         22.4 |       0.95 |          6.3 |       0.09 |
-| DisTorch (Keops)  |         29.1 |        1.7 |         26.8 |       0.62 |          1.4 |       0.06 |
-| DisTorch (Triton) |         29.5 |        1.7 |         35.4 |       0.62 |          1.4 |       0.06 |
+| DisTorch (Keops)  |         28.0 |        1.7 |         27.3 |       0.62 |          1.8 |       0.05 |
+| DisTorch (Triton) |         27.0 |        1.7 |         34.2 |       0.62 |          1.4 |       0.05 |
 
 
 ## Usage
