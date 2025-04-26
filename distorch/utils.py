@@ -56,7 +56,7 @@ def zero_padded_nonnegative_quantile(x: Tensor, q: float, n: int) -> Tensor:
     position = (n - 1) * q
     next_index = math.ceil(position)
     if k < 1 or next_index <= (n - k - 1):
-        return x.new_zeros(size=(1,))
+        return x.new_zeros(size=())
     elif next_index <= n - k:
         interp = 1 - (next_index - position)
         return torch.amin(x) * interp
