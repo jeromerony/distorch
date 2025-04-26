@@ -131,13 +131,10 @@ def is_surface_vertex(images: Tensor, /, return_length: bool = False) -> Tensor:
             is_vertex = is_vertex.type(torch.int8).add_(is_diag_vertex)
 
     elif images.ndim == 4:  # 3d volumes (..., h, w, d) : all leading dimensions are batch
-        diag_weight = images_converted.new_zeros(4, 2, 2, 2)
-        diag_weight[[0, 0], [0, 1], [0, 1], [0, 1]] = 1
-        diag_weight[[1, 1], [1, 0], [0, 1], [0, 1]] = 1
-        diag_weight[[2, 2], [0, 1], [0, 1], [1, 0]] = 1
-        diag_weight[[3, 3], [1, 0], [0, 1], [1, 0]] = 1
-        diag_conv = F.conv3d(images_converted.unsqueeze(1), weight=diag_weight.unsqueeze(1), stride=1, padding=1)
-        neighbors = diag_conv.sum(dim=1)
+        weight = images_converted.new_ones(())
+        neighbors = F.conv3d(images_converted.unsqueeze(1),
+                             weight=weight.expand(1, 1, 2, 2, 2),
+                             stride=1, padding=1).squeeze(1)
         is_vertex = (neighbors > 0).logical_and_(neighbors < 8)
 
     else:
@@ -147,7 +144,7 @@ def is_surface_vertex(images: Tensor, /, return_length: bool = False) -> Tensor:
 
 
 if __name__ == '__main__':
-    A = torch.tensor([[1, 0, 0, 0],
+    A = torch.tensor([[1, 0, 0, 1],
                       [0, 1, 1, 0],
                       [0, 1, 1, 0],
                       [0, 0, 0, 0]], dtype=torch.bool)
