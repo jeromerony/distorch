@@ -7,7 +7,7 @@ from torch import Tensor
 
 from distorch.boundary import is_border_element, is_surface_vertex
 from distorch.min_pairwise_distance import minimum_distances
-from distorch.utils import batchify_input_output, generate_coordinates, zero_padded_nonnegative_quantile
+from distorch.utils import batchify_input_output, zero_padded_nonnegative_quantile
 
 
 @dataclass
@@ -23,6 +23,13 @@ class DistanceMetrics:
     NormalizedSymmetricSurfaceDistance: Tensor
 
 
+def mask_to_coords(mask: Tensor, element_size: Optional[tuple[int | float, ...]] = None) -> Tensor:
+    coords = [c.type(torch.float) for c in torch.where(mask)]
+    if element_size is not None:
+        coords = [c.mul_(e) for c, e in zip(coords, element_size)]
+    return torch.stack(coords, dim=1)
+
+
 @batchify_input_output
 def set_metrics(set1: Tensor,
                 set2: Tensor,
@@ -33,14 +40,11 @@ def set_metrics(set1: Tensor,
     assert set1.dtype == torch.bool
     assert set2.dtype == torch.bool
 
-    coords_shape = set1.shape[1:]
-    coords = generate_coordinates(coords_shape, device=set1.device, element_size=element_size)
-
     zero, nan = set1.new_zeros((), dtype=torch.float), set1.new_full((), float('nan'), dtype=torch.float)
     metrics = {f.name: [] for f in dataclasses.fields(DistanceMetrics)}
     for s1, s2 in zip(set1, set2):
-        elem_1 = coords[s1]
-        elem_2 = coords[s2]
+        elem_1 = mask_to_coords(s1, element_size=element_size)
+        elem_2 = mask_to_coords(s2, element_size=element_size)
         n1, n2 = len(elem_1), len(elem_2)
 
         if n1 < 1 or n2 < 1:  # one set is empty
@@ -50,8 +54,8 @@ def set_metrics(set1: Tensor,
             [m.append(zero) for m in metrics.values()]
             continue
 
-        elem_1_not_2 = coords[s2.logical_not().logical_and_(s1)]
-        elem_2_not_1 = coords[s1.logical_not().logical_and_(s2)]
+        elem_1_not_2 = mask_to_coords(s2.logical_not().logical_and_(s1), element_size=element_size)
+        elem_2_not_1 = mask_to_coords(s1.logical_not().logical_and_(s2), element_size=element_size)
 
         dist_1_to_2 = minimum_distances(elem_1_not_2, elem_2)
         dist_2_to_1 = minimum_distances(elem_2_not_1, elem_1)
