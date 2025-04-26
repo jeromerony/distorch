@@ -14,7 +14,6 @@ license = {file = 'LICENSE'}
 requires-python = '>=3.11'
 dependencies = [
     'torch>=2.0',
-    'pykeops>=2.2',
 ]
 classifiers = [
     'Development Status :: 2 - Pre-Alpha',
@@ -30,8 +29,9 @@ classifiers = [
 dynamic = ['version']
 
 [project.optional-dependencies]
+keops = ['pykeops>=2.2']
 edt = ['cucim-cu12', 'cupy-cuda12x']
-dev = ['distorch[edt]']
+dev = ['distorch[keops,edt]']
 
 [tool.setuptools.packages.find]
 include = ['distorch*']
