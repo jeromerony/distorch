@@ -1,3 +1,7 @@
+import functools
+from typing import Optional
+
+import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
@@ -62,8 +66,59 @@ def is_border_element(images: Tensor, /) -> Tensor:
     return is_border
 
 
+@functools.lru_cache(maxsize=128)
+def vertices_size_2d(element_size: tuple[float, float] = None) -> Tensor:
+    element_size = np.array((1, 1) if element_size is None else element_size)
+    # @formatter:off
+    segments = np.array([[[-1, 0], [0, -1]],
+                         [[-1, 0], [0,  1]],
+                         [[ 1, 0], [0, -1]],
+                         [[ 1, 0], [0,  1]]], dtype=np.int8)
+    # @formatter:on
+    segments = segments * (element_size / 2)
+    sizes = np.zeros(16, dtype=np.float32)
+    for i in np.arange(1, 15, dtype=np.uint8):
+        bits = np.unpackbits(i, count=4, bitorder='little').astype(bool)
+        i_segments = segments[bits].reshape(-1, 2)
+        unique, counts = np.unique(i_segments, axis=0, return_counts=True)
+        surface_segments = unique[counts == 1]
+        sizes[i] = np.abs(surface_segments).sum()
+
+    return torch.from_numpy(sizes)
+
+
+@functools.lru_cache(maxsize=128)
+def vertices_size_3d(element_size: tuple[float, float, float] = None) -> Tensor:
+    element_size = np.array((1, 1, 1) if element_size is None else element_size)
+    # @formatter:off
+    # represent each surface, which is a rectangle, by a vector representing its diagonal
+    surfaces = np.array([[[-1, -1,  0], [ 0, -1, -1], [-1,  0, -1]],
+                         [[-1, -1,  0], [ 0, -1,  1], [-1,  0,  1]],
+                         [[-1,  0, -1], [ 0,  1, -1], [-1,  1,  0]],
+                         [[-1,  0,  1], [-1,  1,  0], [ 0,  1,  1]],
+                         [[ 1,  0, -1], [ 1, -1,  0], [ 0, -1, -1]],
+                         [[ 1,  0,  1], [ 1, -1,  0], [ 0, -1,  1]],
+                         [[ 0,  1, -1], [ 1,  0, -1], [ 1,  1,  0]],
+                         [[ 1,  0,  1], [ 1,  1,  0], [ 0,  1,  1]]], dtype=np.int8)
+    # @formatter:on
+    surfaces = surfaces * (element_size / 2)
+    sizes = np.zeros(256, dtype=np.float32)
+    for i in np.arange(1, 255, dtype=np.uint8):
+        bits = np.unpackbits(i, count=8, bitorder='little').astype(bool)
+        i_segments = surfaces[bits].reshape(-1, 3)
+        unique, counts = np.unique(i_segments, axis=0, return_counts=True)
+        surface_segments = unique[counts == 1]
+        surface_segments[surface_segments == 0] = 1
+        sizes[i] = np.prod(np.abs(surface_segments), axis=1).sum()
+
+    return torch.from_numpy(sizes)
+
+
 @batchify_input_output
-def is_surface_vertex(images: Tensor, /, return_length: bool = False) -> Tensor:
+def is_surface_vertex(images: Tensor,
+                      /,
+                      return_size: bool = False,
+                      element_size: Optional[tuple[float, ...]] = None) -> Tensor:
     """
     For a batch of binary images of shape (b, h, w) or 3d volumes of shape (b, h, w, d), computes surface vertices based
     on counting neighbors. For every pixel / voxel in the input, returns the grid of vertices forming the borders of
@@ -86,8 +141,10 @@ def is_surface_vertex(images: Tensor, /, return_length: bool = False) -> Tensor:
     ----------
     images : Tensor
         Boolean tensor where True values indicate the region for which to compute the surface vertices.
-    return_length : bool
-        If True, returns the "length" of surface vertices instead of a binary mask.
+    return_size : bool
+        If True, returns the size of surface vertices instead of a binary mask.
+    element_size : tuple of floats
+        If provided, will adjust the size of surface vertices accordingly. Only used if `return_size=True`.
 
     Returns
     -------
@@ -115,39 +172,31 @@ def is_surface_vertex(images: Tensor, /, return_length: bool = False) -> Tensor:
     """
     device = images.device
     dtype = torch.uint8 if device.type == 'cpu' else torch.float16
-    images_converted = images.type(dtype, non_blocking=True)
+    images_converted = images.type(dtype)
 
     if images.ndim == 3:  # 2d images
-
-        diag_weight = images_converted.new_tensor([[[1, 0],
-                                                    [0, 1]],
-                                                   [[0, 1],
-                                                    [1, 0]]])
-        diag_conv = F.conv2d(images_converted.unsqueeze(1), weight=diag_weight.unsqueeze(1), stride=1, padding=1)
-        neighbors = diag_conv.sum(dim=1)
-        is_vertex = (neighbors > 0).logical_and_(neighbors < 4)
-        if return_length:
-            is_diag_vertex = ((diag_conv == 2) & torch.flip(diag_conv == 0, dims=(1,))).any(dim=1)
-            is_vertex = is_vertex.type(torch.int8).add_(is_diag_vertex)
+        weight = 2 ** torch.arange(4, dtype=dtype, device=device)
+        neighbors = F.conv2d(images_converted.unsqueeze(1),
+                             weight=weight.reshape(1, 1, 2, 2),
+                             stride=1, padding=1).squeeze(1).long()
+        if return_size:
+            vertices_size = vertices_size_2d(element_size=element_size).to(device, non_blocking=True)
+            is_vertex = vertices_size[neighbors]
+        else:
+            is_vertex = (neighbors > 0).logical_and_(neighbors < 15)
 
     elif images.ndim == 4:  # 3d volumes (..., h, w, d) : all leading dimensions are batch
-        weight = images_converted.new_ones(())
+        weight = 2 ** torch.arange(8, dtype=dtype, device=device)
         neighbors = F.conv3d(images_converted.unsqueeze(1),
-                             weight=weight.expand(1, 1, 2, 2, 2),
-                             stride=1, padding=1).squeeze(1)
-        is_vertex = (neighbors > 0).logical_and_(neighbors < 8)
+                             weight=weight.reshape(1, 1, 2, 2, 2),
+                             stride=1, padding=1).squeeze(1).long()
+        if return_size:
+            vertices_size = vertices_size_3d(element_size=element_size).to(device, non_blocking=True)
+            is_vertex = vertices_size[neighbors]
+        else:
+            is_vertex = (neighbors > 0).logical_and_(neighbors < 255)
 
     else:
         raise ValueError(f'Input should be Tensor with 3 or 4 dimensions: supplied {images.shape}')
 
     return is_vertex
-
-
-if __name__ == '__main__':
-    A = torch.tensor([[1, 0, 0, 1],
-                      [0, 1, 1, 0],
-                      [0, 1, 1, 0],
-                      [0, 0, 0, 0]], dtype=torch.bool)
-
-    print(is_surface_vertex(A).int())
-    print(is_surface_vertex(A, return_length=True).int())

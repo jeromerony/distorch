@@ -37,12 +37,16 @@ def set_metrics(set1: Tensor,
                 element_size: Optional[tuple[int | float, ...]] = None,
                 distance_threshold: float = 1) -> DistanceMetrics:
     assert set1.shape == set2.shape
-    assert set1.dtype == torch.bool
-    assert set2.dtype == torch.bool
+    assert set1.dtype == set2.dtype
 
     zero, nan = set1.new_zeros((), dtype=torch.float), set1.new_full((), float('nan'), dtype=torch.float)
     metrics = {f.name: [] for f in dataclasses.fields(DistanceMetrics)}
-    for s1, s2 in zip(set1, set2):
+    for sizes_1, sizes_2 in zip(set1, set2):
+        if set1.dtype == torch.bool and set2.dtype == torch.bool:
+            s1, s2 = sizes_1, sizes_2
+        else:
+            s1, s2 = sizes_1 > 0, sizes_2 > 0
+
         elem_1 = mask_to_coords(s1, element_size=element_size)
         elem_2 = mask_to_coords(s2, element_size=element_size)
         n1, n2 = len(elem_1), len(elem_2)
@@ -54,35 +58,51 @@ def set_metrics(set1: Tensor,
             [m.append(zero) for m in metrics.values()]
             continue
 
-        elem_1_not_2 = mask_to_coords(s2.logical_not().logical_and_(s1), element_size=element_size)
-        elem_2_not_1 = mask_to_coords(s1.logical_not().logical_and_(s2), element_size=element_size)
+        mask_1_not_2 = s2.logical_not().logical_and_(s1)
+        elem_1_not_2 = mask_to_coords(mask_1_not_2, element_size=element_size)
+
+        mask_2_not_1 = s1.logical_not().logical_and_(s2)
+        elem_2_not_1 = mask_to_coords(mask_2_not_1, element_size=element_size)
 
         dist_1_to_2 = minimum_distances(elem_1_not_2, elem_2)
         dist_2_to_1 = minimum_distances(elem_2_not_1, elem_1)
 
         metrics['Hausdorff'].append(torch.maximum(dist_1_to_2.max(), dist_2_to_1.max()))
+        # TODO: take the elements size into account in quantile
         metrics['Hausdorff95_1_to_2'].append(zero_padded_nonnegative_quantile(dist_1_to_2, q=0.95, n=n1))
         metrics['Hausdorff95_2_to_1'].append(zero_padded_nonnegative_quantile(dist_2_to_1, q=0.95, n=n2))
 
-        sum_dist_1, sum_dist_2 = dist_1_to_2.sum(), dist_2_to_1.sum()
-        metrics['AverageSurfaceDistance_1_to_2'].append(sum_dist_1 / n1)
-        metrics['AverageSurfaceDistance_2_to_1'].append(sum_dist_2 / n2)
-        metrics['AverageSymmetricSurfaceDistance'].append((sum_dist_1 + sum_dist_2) / (n1 + n2))
+        sizes_1_not_2, sizes_2_not_1 = sizes_1[mask_1_not_2], sizes_2[mask_2_not_1]
+        total_size_1, total_size_2 = sizes_1.sum(), sizes_2.sum()
 
-        dist_1_to_2_smaller = dist_1_to_2 <= distance_threshold
-        dist_2_to_1_smaller = dist_2_to_1 <= distance_threshold
-        k1, k2 = dist_1_to_2_smaller.size(0), dist_2_to_1_smaller.size(0)
-        num_smaller_1_to_2 = dist_1_to_2_smaller.sum() + (n1 - k1)
-        num_smaller_2_to_1 = dist_2_to_1_smaller.sum() + (n2 - k2)
-        metrics['NormalizedSurfaceDistance_1_to_2'].append(num_smaller_1_to_2 / n1)
-        metrics['NormalizedSurfaceDistance_2_to_1'].append(num_smaller_2_to_1 / n2)
-        metrics['NormalizedSymmetricSurfaceDistance'].append((num_smaller_1_to_2 + num_smaller_2_to_1) / (n1 + n2))
+        weighted_sum_dist_1 = (dist_1_to_2 * sizes_1_not_2).sum()
+        weighted_sum_dist_2 = (dist_2_to_1 * sizes_2_not_1).sum()
+        metrics['AverageSurfaceDistance_1_to_2'].append(weighted_sum_dist_1 / total_size_1)
+        metrics['AverageSurfaceDistance_2_to_1'].append(weighted_sum_dist_2 / total_size_2)
+        metrics['AverageSymmetricSurfaceDistance'].append(
+            (weighted_sum_dist_1 + weighted_sum_dist_2) / (total_size_1 + total_size_2)
+        )
+
+        dist_1_to_2_larger = dist_1_to_2 > distance_threshold
+        dist_2_to_1_larger = dist_2_to_1 > distance_threshold
+        weighted_sum_smaller_1_to_2 = total_size_1 - (sizes_1_not_2 * dist_1_to_2_larger).sum()
+        weighted_sum_smaller_2_to_1 = total_size_2 - (sizes_2_not_1 * dist_2_to_1_larger).sum()
+        metrics['NormalizedSurfaceDistance_1_to_2'].append(weighted_sum_smaller_1_to_2 / total_size_1)
+        metrics['NormalizedSurfaceDistance_2_to_1'].append(weighted_sum_smaller_2_to_1 / total_size_2)
+        metrics['NormalizedSymmetricSurfaceDistance'].append(
+            (weighted_sum_smaller_1_to_2 + weighted_sum_smaller_2_to_1) / (total_size_1 + total_size_2)
+        )
 
     metrics = {k: torch.stack(v, dim=0) for k, v in metrics.items()}
     return DistanceMetrics(**metrics)
 
 
-def boundary_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> DistanceMetrics:
+def boundary_metrics(images1: Tensor,
+                     images2: Tensor,
+                     /,
+                     weight_by_size: bool = True,
+                     element_size: Optional[tuple[int | float, ...]] = None,
+                     **kwargs) -> DistanceMetrics:
     """
     Computes metrics between the boundaries of two sets. These metrics include the Hausdorff distance and it 95%
     variant, the average surface distances and their symmetric variant.
@@ -104,8 +124,9 @@ def boundary_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> DistanceM
         Dictionary of metrics where each entry correspond to a metric for all the element in the batch.
 
     """
-    set1, set2 = is_surface_vertex(images1), is_surface_vertex(images2)
-    return set_metrics(set1, set2, **kwargs)
+    vertices_1 = is_surface_vertex(images1, element_size=element_size, return_size=weight_by_size)
+    vertices_2 = is_surface_vertex(images2, element_size=element_size, return_size=weight_by_size)
+    return set_metrics(vertices_1, vertices_2, element_size=element_size, **kwargs)
 
 
 def pixel_center_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> DistanceMetrics:
