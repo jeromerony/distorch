@@ -192,6 +192,8 @@ def is_surface_vertex(images: Tensor,
     device = images.device
     dtype = torch.uint8 if device.type == 'cpu' else torch.float16
     images_converted = images.type(dtype)
+    # enforce tuple of float to be hashable
+    element_size = None if element_size is None else tuple(map(float, element_size))
 
     if images.ndim == 3:  # 2d images
         weight = 2 ** torch.arange(4, dtype=dtype, device=device)
