@@ -23,6 +23,23 @@ class DistanceMetrics:
     NormalizedSymmetricSurfaceDistance: Tensor
 
 
+def reframe(masks: tuple[Tensor, Tensor]) -> list[Tensor]:
+    ndim = masks[0].ndim
+    for dim in range(ndim):
+        other_dims = set(range(ndim))
+        other_dims.remove(dim)
+        other_dims = tuple(other_dims)
+        non_empty = masks[0].any(dim=other_dims).logical_or_(masks[1].any(dim=other_dims))
+        arange = torch.arange(masks[0].size(dim), device=masks[0].device)
+
+        left = torch.where(non_empty, arange, masks[0].size(dim) - 1).amin()
+        right = torch.where(non_empty, arange, 0).amax().add_(1)
+
+        masks = [mask.narrow(dim=dim, start=left, length=(right - left).clamp_(min=0)) for mask in masks]
+
+    return masks
+
+
 def mask_to_coords(mask: Tensor, element_size: Optional[tuple[int | float, ...]] = None) -> Tensor:
     coords = [c.type(torch.float) for c in torch.where(mask)]
     if element_size is not None:
@@ -42,6 +59,8 @@ def set_metrics(set1: Tensor,
     zero, nan = set1.new_zeros((), dtype=torch.float), set1.new_full((), float('nan'), dtype=torch.float)
     metrics = {f.name: [] for f in dataclasses.fields(DistanceMetrics)}
     for sizes_1, sizes_2 in zip(set1, set2):
+        sizes_1, sizes_2 = reframe((sizes_1, sizes_2))
+
         if set1.dtype == torch.bool and set2.dtype == torch.bool:
             s1, s2 = sizes_1, sizes_2
         else:
