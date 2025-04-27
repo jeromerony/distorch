@@ -68,7 +68,7 @@ Below is a comparison on three datasets (SegTHOR, OAI, WMH 1.0) with runtime and
 The core function of this library is the `distorch.boundary_metrics` function located in the `distorch/metric.py` module.
 This function computes several distance-based metrics such as Hausdorff, ASSD and NSSD. It can be used for 2D images and 3D volumes:
 - for 2D images, this function expects 2D or 3D binary tensors, where the leading dimension is the batch dimension in the latter case; 
-- for 3D volumes, this function expects $n$D binary tensors, with $n\geq 4$, where all leading dimensions are batch dimensions.
+- for 3D volumes, this function expects $`n`$D binary tensors, with $`n\geq 4`$, where all leading dimensions are batch dimensions.
 
 Example usage is as follows:
 ```python
