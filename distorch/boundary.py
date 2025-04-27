@@ -66,30 +66,36 @@ def is_border_element(images: Tensor, /) -> Tensor:
     return is_border
 
 
-@functools.lru_cache(maxsize=128)
-def vertices_size_2d(element_size: tuple[float, float] = None) -> Tensor:
-    element_size = np.array((1, 1) if element_size is None else element_size)
+@functools.lru_cache(maxsize=1)
+def _vertices_elements_2d() -> list[np.ndarray]:
     # @formatter:off
     segments = np.array([[[-1, 0], [0, -1]],
                          [[-1, 0], [0,  1]],
                          [[ 1, 0], [0, -1]],
                          [[ 1, 0], [0,  1]]], dtype=np.int8)
     # @formatter:on
-    segments = segments * (element_size / 2)
-    sizes = np.zeros(16, dtype=np.float32)
+    vertices_segments = []
     for i in np.arange(1, 15, dtype=np.uint8):
         bits = np.unpackbits(i, count=4, bitorder='little').astype(bool)
         i_segments = segments[bits].reshape(-1, 2)
         unique, counts = np.unique(i_segments, axis=0, return_counts=True)
         surface_segments = unique[counts == 1]
-        sizes[i] = np.abs(surface_segments).sum()
-
-    return torch.from_numpy(sizes)
+        vertices_segments.append(surface_segments)
+    return vertices_segments
 
 
 @functools.lru_cache(maxsize=128)
-def vertices_size_3d(element_size: tuple[float, float, float] = None) -> Tensor:
-    element_size = np.array((1, 1, 1) if element_size is None else element_size)
+def vertices_size_2d(element_size: tuple[float, float] = None) -> Tensor:
+    element_size = 0.5 if element_size is None else np.array(element_size) / 2
+    vertices_segments = _vertices_elements_2d()
+    sizes = np.zeros(16, dtype=np.float32)
+    for i, elems in enumerate(vertices_segments):
+        sizes[i + 1] = np.abs(elems * element_size).sum()  # all elements are 1d in 3d
+    return torch.from_numpy(sizes)
+
+
+@functools.lru_cache(maxsize=1)
+def _vertices_elements_3d() -> list[np.ndarray]:
     # @formatter:off
     # represent each surface, which is a rectangle, by a vector representing its diagonal
     surfaces = np.array([[[-1, -1,  0], [ 0, -1, -1], [-1,  0, -1]],
@@ -101,16 +107,25 @@ def vertices_size_3d(element_size: tuple[float, float, float] = None) -> Tensor:
                          [[ 0,  1, -1], [ 1,  0, -1], [ 1,  1,  0]],
                          [[ 1,  0,  1], [ 1,  1,  0], [ 0,  1,  1]]], dtype=np.int8)
     # @formatter:on
-    surfaces = surfaces * (element_size / 2)
-    sizes = np.zeros(256, dtype=np.float32)
+    vertices_elements = []
     for i in np.arange(1, 255, dtype=np.uint8):
         bits = np.unpackbits(i, count=8, bitorder='little').astype(bool)
-        i_segments = surfaces[bits].reshape(-1, 3)
-        unique, counts = np.unique(i_segments, axis=0, return_counts=True)
-        surface_segments = unique[counts == 1]
-        surface_segments[surface_segments == 0] = 1
-        sizes[i] = np.prod(np.abs(surface_segments), axis=1).sum()
+        i_surfaces = surfaces[bits].reshape(-1, 3)
+        unique, counts = np.unique(i_surfaces, axis=0, return_counts=True)
+        exposed_surfaces = unique[counts == 1]
+        vertices_elements.append(exposed_surfaces)
+    return vertices_elements
 
+
+@functools.lru_cache(maxsize=128)
+def vertices_size_3d(element_size: tuple[float, float, float] = None) -> Tensor:
+    element_size = 0.5 if element_size is None else np.array(element_size) / 2
+    vertices_elements = _vertices_elements_3d()
+    sizes = np.zeros(256, dtype=np.float32)
+    for i, elems in enumerate(vertices_elements):
+        sized_elems = elems * element_size
+        sized_elems[sized_elems == 0] = 1  # compute area of 2d rectangles in 3d => replace 0-thickness by 1
+        sizes[i + 1] = np.abs(np.prod(sized_elems, axis=1)).sum()
     return torch.from_numpy(sizes)
 
 
