@@ -76,13 +76,13 @@ def batchify_input_output(f):
 
         if ndim == 2:
             args = [arg.unsqueeze(0) for arg in args]
-        elif ndim >= 4:
+        elif ndim > 4:
             batch_shape = args[0].shape[:-3]
             args = [arg.flatten(start_dim=0, end_dim=-4) for arg in args]
 
         output = f(*args, **kwargs)
 
-        if ndim == 2 or ndim >= 4:
+        if ndim == 2 or ndim > 4:
             debatchify = (lambda t: t.squeeze(0)) if ndim == 2 else (lambda t: t.unflatten(0, batch_shape))
             if isinstance(output, Tensor):
                 output = debatchify(output)
