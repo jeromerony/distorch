@@ -65,51 +65,40 @@ Below is a comparison on three datasets (SegTHOR, OAI, WMH 1.0) with runtime and
 
 ## Usage
 
-The core functions for metrics computation in the [`metrics.py`](distorch/metrics.py) file, but we also provide some utility to compute the desired metrics between two folders:
-```bash
->>> python compute_metrics.py --help
-usage: compute_metrics.py [-h] --ref_folder REF_FOLDER --pred_folder PRED_FOLDER --ref_extension {.nii.gz,.png,.npy,.nii} [--pred_extension {.nii.gz,.png,.npy,.nii}]
-                          --num_classes NUM_CLASSES [--metrics {3d_hd,3d_hd95,3d_assd} [{3d_hd,3d_hd95,3d_assd} ...]] [--cpu] [--overwrite] [--save_folder SAVE_FOLDER]
+The core function of this library is the `distorch.boundary_metrics` function located in the `distorch/metric.py` module.
+This function computes several distance-based metrics such as Hausdorff, ASSD and NSSD. It can be used for 2D images and 3D volumes:
+- for 2D images, this function expects 2D or 3D binary tensors, where the leading dimension is the batch dimension in the latter case; 
+- for 3D volumes, this function expects $n$D binary tensors, with $n\geq 4$, where all leading dimensions are batch dimensions.
 
-Compute metrics for a list of images
-
-options:
-  -h, --help            show this help message and exit
-  --ref_folder REF_FOLDER
-  --pred_folder PRED_FOLDER
-  --ref_extension {.nii.gz,.png,.npy,.nii}
-  --pred_extension {.nii.gz,.png,.npy,.nii}
-  --num_classes, -K, -C NUM_CLASSES
-  --metrics {3d_hd,3d_hd95,3d_assd} [{3d_hd,3d_hd95,3d_assd} ...]
-                        The metrics to compute.
-  --cpu
-  --overwrite           Overwrite existing metrics output, without prompt.
-  --save_folder SAVE_FOLDER
-                        The folder where to save the metrics
+Example usage is as follows:
+```python
+import torch
+import distorch
+device = torch.device('cuda')
+A = torch.tensor([[0, 0, 0, 0, 0],
+                  [0, 1, 0, 0, 0],
+                  [0, 0, 1, 1, 0],
+                  [0, 1, 1, 1, 0],
+                  [0, 0, 0, 0, 0]], dtype=torch.bool, device=device)
+B = torch.tensor([[1, 1, 0, 0, 0],
+                  [0, 1, 1, 0, 0],
+                  [0, 1, 1, 1, 0],
+                  [0, 1, 1, 0, 0],
+                  [0, 0, 0, 0, 0]], dtype=torch.bool, device=device)
+metrics = distorch.boundary_metrics(A, B)
+print(metrics)
 ```
-
-With an example invocation:
-```bash
->>>  CUDA_VISIBLE_DEVICES=0 python -O compute_metrics.py --ref_folder ~/code/constrained_cnn/data/OAI/test/gt_3d --pred_folder ~/code/constrained_cnn/results/OAI/cross_entropy/best_epoch/test_3d/ --ref_extension .nii.gz -K 5 --metrics 3d_hd 3d_hd95 3d_assd
-
-{'cpu': False,
- 'metrics': ['3d_hd', '3d_hd95', '3d_assd'],
- 'num_classes': 5,
- 'overwrite': False,
- 'pred_extension': '.nii.gz',
- 'pred_folder': PosixPath('/home/hoel/code/constrained_cnn/results/OAI/cross_entropy/best_epoch/test_3d'),
- 'ref_extension': '.nii.gz',
- 'ref_folder': PosixPath('/home/hoel/code/constrained_cnn/data/OAI/test/gt_3d'),
- 'save_folder': None}
->>> Initializing Volume dataset with 100 volumes
->>  /home/hoel/code/constrained_cnn/data/OAI/test/gt_3d, /home/hoel/code/constrained_cnn/results/OAI/cross_entropy/best_epoch/test_3d
-> All stems found in both folders
->>> /home/hoel/code/constrained_cnn/results/OAI/cross_entropy/best_epoch/test_3d
-3d_hd [7.522784  4.030704  5.530623  4.173739  5.6819477]
-3d_hd95 [0.54261297 0.8277547  0.9859997  0.8178589  1.3280611 ]
-3d_assd [0.07726964 0.25085682 0.31391588 0.25151908 0.35778362]
+```text
+DistanceMetrics(Hausdorff=tensor(1.4142, device='cuda:0'),
+                Hausdorff95_1_to_2=tensor(1., device='cuda:0'),
+                Hausdorff95_2_to_1=tensor(1.1036, device='cuda:0'),
+                AverageSurfaceDistance_1_to_2=tensor(0.2308, device='cuda:0'),
+                AverageSurfaceDistance_2_to_1=tensor(0.4009, device='cuda:0'),
+                AverageSymmetricSurfaceDistance=tensor(0.3246, device='cuda:0'),
+                NormalizedSurfaceDistance_1_to_2=tensor(1., device='cuda:0'),
+                NormalizedSurfaceDistance_2_to_1=tensor(0.9375, device='cuda:0'),
+                NormalizedSymmetricSurfaceDistance=tensor(0.9655, device='cuda:0'))
 ```
-
 
 ## License and citation
 This repository is under the [BSD 3](LICENSE) license. For citation, currently the following may be used in LaTeX documents:
