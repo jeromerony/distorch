@@ -75,10 +75,12 @@ def _vertices_elements_2d() -> list[np.ndarray]:
                          [[ 1, 0], [0,  1]]], dtype=np.int8)
     # @formatter:on
     vertices_segments = []
-    for i in np.arange(1, 15, dtype=np.uint8):
-        bits = np.unpackbits(i, count=4, bitorder='little').astype(bool)
-        i_segments = segments[bits].reshape(-1, 2)
-        unique, counts = np.unique(i_segments, axis=0, return_counts=True)
+    arange = np.arange(1, 15, dtype=np.uint8)
+    bits = np.unpackbits(arange[:, None], axis=1, count=4, bitorder='little').astype(bool)
+    for b in bits:
+        bit_segments = segments[b].reshape(-1, 2)
+        # only keep segments appearing once: they belong to the boundary
+        unique, counts = np.unique(bit_segments, axis=0, return_counts=True)
         surface_segments = unique[counts == 1]
         vertices_segments.append(surface_segments)
     return vertices_segments
@@ -108,10 +110,12 @@ def _vertices_elements_3d() -> list[np.ndarray]:
                          [[ 1,  0,  1], [ 1,  1,  0], [ 0,  1,  1]]], dtype=np.int8)
     # @formatter:on
     vertices_elements = []
-    for i in np.arange(1, 255, dtype=np.uint8):
-        bits = np.unpackbits(i, count=8, bitorder='little').astype(bool)
-        i_surfaces = surfaces[bits].reshape(-1, 3)
-        unique, counts = np.unique(i_surfaces, axis=0, return_counts=True)
+    arange = np.arange(1, 255, dtype=np.uint8)
+    bits = np.unpackbits(arange[:, None], axis=1, bitorder='little').astype(bool)
+    for b in bits:
+        bit_surfaces = surfaces[b].reshape(-1, 3)
+        # only keep surfaces appearing once: they belong to the boundary
+        unique, counts = np.unique(bit_surfaces, axis=0, return_counts=True)
         exposed_surfaces = unique[counts == 1]
         vertices_elements.append(exposed_surfaces)
     return vertices_elements
