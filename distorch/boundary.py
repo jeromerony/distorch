@@ -85,7 +85,7 @@ def _vertices_elements_2d() -> list[np.ndarray]:
 
 
 @functools.lru_cache(maxsize=128)
-def vertices_size_2d(element_size: tuple[float, float] = None) -> Tensor:
+def vertices_size_2d(element_size: Optional[tuple[float, float]] = None) -> Tensor:
     element_size = 0.5 if element_size is None else np.array(element_size) / 2
     vertices_segments = _vertices_elements_2d()
     sizes = np.zeros(16, dtype=np.float32)
@@ -118,7 +118,7 @@ def _vertices_elements_3d() -> list[np.ndarray]:
 
 
 @functools.lru_cache(maxsize=128)
-def vertices_size_3d(element_size: tuple[float, float, float] = None) -> Tensor:
+def vertices_size_3d(element_size: Optional[tuple[float, float, float]] = None) -> Tensor:
     element_size = 0.5 if element_size is None else np.array(element_size) / 2
     vertices_elements = _vertices_elements_3d()
     sizes = np.zeros(256, dtype=np.float32)
