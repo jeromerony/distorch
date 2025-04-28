@@ -252,7 +252,7 @@ def main() -> None:
     if args.save_folder:
         savedir: Path = Path(args.save_folder)
         for key, e in metrics.items():
-            dest: Path = savedir / f'{args.mode}{"_" if args.mode else ""}{key}.npy'
+            dest: Path = savedir / f'{key}.npy'
             assert not dest.exists() or args.overwrite
 
             np.save(dest, e.cpu().numpy())
