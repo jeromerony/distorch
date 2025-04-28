@@ -66,9 +66,52 @@ def vertices_approx_ASD():
     return fig
 
 
+def diagonal_pixels():
+    fig, ax = plt.subplots(layout='constrained', figsize=(3.2, 3.2))
+    ax: plt.Axes
+
+    ax.set_xlim(0, 4)
+    ax.set_ylim(0, 4)
+    ax.set_xticks([0, 1, 2, 3, 4])
+    ax.set_yticks([0, 1, 2, 3])
+    ax.tick_params(axis="both", length=0, labelbottom=False, labelleft=False)
+    ax.grid(alpha=0.3)
+    ax.set_aspect('equal')
+
+    points = ((1, 1), (2, 1), (2, 2), (1, 2), (2, 2), (3, 2), (3, 3), (2, 3))
+    ax.add_artist(plt.Polygon(points[:4], linewidth=2, color='C0', fill=None, hatch='x'))
+    ax.add_artist(plt.Polygon(points[4:], linewidth=2, color='C0', fill=None, hatch='x'))
+    ax.scatter(*zip(*points), c='C0')
+
+    return fig
+
+def anisotropic_boundary():
+    fig, ax = plt.subplots(layout='constrained', figsize=(3.2, 1.2))
+    ax: plt.Axes
+
+    ax.set_xlim(0, 4)
+    ax.set_ylim(0, 3)
+    ax.set_xticks([0, 1, 2, 3, 4])
+    ax.set_yticks([0, 1, 2, 3])
+    ax.tick_params(axis="both", length=0, labelbottom=False, labelleft=False)
+    ax.grid(alpha=0.3)
+
+    points = ((1, 1), (2, 1), (3, 1), (3, 2), (2, 2), (1, 2))
+    ax.add_artist(plt.Polygon(points, linewidth=2, color='C0', fill=None, hatch='x'))
+    ax.scatter(*zip(*points), c='C0')
+
+    return fig
+
+
 if __name__ == '__main__':
     fig = single_pixel_representation()
     fig.savefig('single_pixel.png')
 
     fig = vertices_approx_ASD()
     fig.savefig('vertices_approx_ASD.png')
+
+    fig = diagonal_pixels()
+    fig.savefig('diagonal_pixels.png')
+
+    fig = anisotropic_boundary()
+    fig.savefig('anisotropic_boundary.png')

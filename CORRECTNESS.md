@@ -44,3 +44,43 @@ Here we can compute the values of $`\mathrm{ASD}_{a\rightarrow b}`$ and $`\mathr
 - $`\mathrm{ASSD}(a,b) = \frac{4\times\frac1{16} + 6\times\frac13}{4 + 6} = \frac{9}{40}=0.225`$
 
 In comparison, using pixel vertices to approximate the boundary, we get $`\mathrm{ASD}_{a\rightarrow b}=0`$, $`\mathrm{ASD}_{b\rightarrow a}=\frac13`$ and $`\mathrm{ASSD}(a,b)=0.2`$.
+
+### Vertices effective size
+
+In the previous examples, the boundaries are simple, and have the same length as the number of vertices.
+However, this is not always the case. Consider the following example:
+<p align="center">
+  <img src="figures/diagonal_pixels.png" />
+</p>
+The boundary has a length of 8, but there are only 7 vertices. Therefore, The integral approximation deviates even more.
+We could duplicate the vertex in the middle to account for that, but it would incur some additional computational cost.
+Additionally, this does not generalize to anisotropic cases, such as the following example:
+<p align="center">
+  <img src="figures/anisotropic_boundary.png" />
+</p>
+
+A better approach is to compute an _effective_ size for each vertex.
+In 2d, this corresponds to the length of the section of the boundary that is associated with a vertex.
+In the previous example, the effective size of the middle vertices is larger than the effective size of the corner vertices.
+In loser terms, these vertices have "more boundary", and therefore have a larger size. 
+Taking this into account in the approximations of the integrals amounts to performing a weighted average of the vertices distances.
+Going back to the diagonal example, we give a weight of 2 to the center vertex, while the others have a weight of 1.
+
+In DisTorch, this is the default behavior, and it can be controlled with `weight_by_size` argument in `distorch.boundary_metrics`. 
+
+## Anisotropy
+
+In medical imaging, it is often the case that voxels are not cubes, but rather rectangular parallelepiped.
+This is due to the acquisition process in MRI or CT machines, which rotate around the patient and advance linearly along the rotation axis.
+This produces slices with a thickness that differs from the planar resolution.
+
+This needs to be taken into account in the calculations to get meaningful distances.
+This can be achieved by passing the size of a unit element (_i.e._ resolution), often obtained from `.nii` file:
+```python
+import nibabel
+nii_file = nibabel.load(...)
+element_size = tuple(map(float, nii_file.header.get_zooms()))
+```
+and passing it: `distorch.boundary_metrics(..., element_size=element_size)`.
+
+Additional care is taken to ensure that anisotropy and vertices size correctly interact together.
