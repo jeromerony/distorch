@@ -251,6 +251,7 @@ def main() -> None:
 
     if args.save_folder:
         savedir: Path = Path(args.save_folder)
+        savedir.mkdir(parents=True, exist_ok=True)
         for key, e in metrics.items():
             dest: Path = savedir / f'{key}.npy'
             assert not dest.exists() or args.overwrite
