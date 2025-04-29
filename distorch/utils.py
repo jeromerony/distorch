@@ -56,13 +56,15 @@ def zero_padded_nonnegative_quantile(x: Tensor, q: float, n: int) -> Tensor:
     position = (n - 1) * q
     next_index = math.ceil(position)
     if k < 1 or next_index <= (n - k - 1):
-        return x.new_zeros(size=())
+        value = x.new_zeros(size=())
     elif next_index <= n - k:
         interp = 1 - (next_index - position)
-        return torch.amin(x) * interp
+        value = torch.amin(x) * interp
     else:
         adjusted_q = (position - (n - k)) / (k - 1)
-        return torch.quantile(x, q=adjusted_q)
+        value = torch.quantile(x, q=adjusted_q)
+    assert value.ndim == 0
+    return value
 
 
 def batchify_input_output(f):
