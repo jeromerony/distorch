@@ -25,10 +25,9 @@ class DistanceMetrics:
 
 def reframe(masks: tuple[Tensor, Tensor]) -> list[Tensor]:
     ndim = masks[0].ndim
+    dims = set(range(ndim))
     for dim in range(ndim):
-        other_dims = set(range(ndim))
-        other_dims.remove(dim)
-        other_dims = tuple(other_dims)
+        other_dims = tuple(dims - {dim})
         non_empty = masks[0].any(dim=other_dims).logical_or_(masks[1].any(dim=other_dims))
         arange = torch.arange(masks[0].size(dim), device=masks[0].device)
 
