@@ -44,7 +44,7 @@ def reframe(masks: tuple[Tensor, Tensor]) -> list[Tensor]:
 def mask_to_coords(mask: Tensor, element_size: Optional[tuple[int | float, ...]] = None) -> Tensor:
     coords = [c.type(torch.float) for c in torch.where(mask)]
     if element_size is not None:
-        coords = [c.mul_(e) for c, e in zip(coords, element_size)]
+        torch._foreach_mul_(coords, element_size)
     return torch.stack(coords, dim=1)
 
 
