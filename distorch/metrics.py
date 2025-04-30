@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import torch
-from torch import Tensor
+from torch import SymInt, Tensor
 
 from distorch.boundary import is_border_element, is_surface_vertex
 from distorch.min_pairwise_distance import minimum_distances
@@ -34,8 +34,9 @@ def reframe(masks: tuple[Tensor, Tensor]) -> list[Tensor]:
 
         left = torch.where(non_empty, arange, masks[0].size(dim) - 1).amin()
         right = torch.where(non_empty, arange, 0).amax().add_(1)
+        length: SymInt = (right - left).clamp_(min=0)
 
-        masks = [mask.narrow(dim=dim, start=left, length=(right - left).clamp_(min=0)) for mask in masks]
+        masks = [mask.narrow(dim=dim, start=left, length=length) for mask in masks]
 
     return masks
 
