@@ -63,6 +63,7 @@ def zero_padded_nonnegative_quantile(x: Tensor, q: float, n: int) -> Tensor:
     else:
         adjusted_q = (position - (n - k)) / (k - 1)
         value = torch.quantile(x, q=adjusted_q)
+    value.squeeze_()
     assert value.ndim == 0
     return value
 
