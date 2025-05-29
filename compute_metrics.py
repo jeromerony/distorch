@@ -212,6 +212,9 @@ def get_args() -> argparse.Namespace:
                         help='The metrics to compute.')
 
     parser.add_argument('--cpu', action='store_true')
+    parser.add_argument('--num_workers', type=int, default=len(os.sched_getaffinity(0)) // 2,
+                        help="Number of workers for the dataloader. "
+                             "Higher is not always better, depending on hardware (CPU notably).")
     parser.add_argument('--overwrite', action='store_true', help='Overwrite existing metrics output, without prompt.')
 
     parser.add_argument('--save_folder', type=Path, default=None, help='The folder where to save the metrics')
@@ -245,7 +248,7 @@ def main() -> None:
                            quiet=False)
     loader = DataLoader(dt_set,
                         batch_size=1,
-                        num_workers=len(os.sched_getaffinity(0)),
+                        num_workers=args.num_workers,
                         shuffle=False,
                         drop_last=False)
 
