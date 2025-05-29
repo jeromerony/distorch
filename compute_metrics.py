@@ -153,8 +153,8 @@ class VolumeDataset(Dataset):
             case _:
                 raise NotImplementedError(self.ref_extension, self.pred_extension)
 
-        return {'ref': torch.as_tensor(ref, dtype=torch.int64),
-                'pred': torch.as_tensor(pred, dtype=torch.int64),
+        return {'ref': torch.as_tensor(ref, dtype=torch.uint8),
+                'pred': torch.as_tensor(pred, dtype=torch.uint8),
                 'voxelspacing': spacing,
                 'stem': stem}
 
