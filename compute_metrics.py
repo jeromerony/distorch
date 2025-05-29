@@ -175,6 +175,8 @@ def compute_metrics(loader, metrics: dict[str, Tensor], device, K: int,
             assert B == 1, (B, ref.shape)
 
             for k in range(K):
+                if ignore is not None and k in ignore:
+                    continue
 
                 if set(metrics.keys()).intersection({'3d_hd', '3d_hd95', '3d_assd'}):
                     h = boundary_metrics((pred == k)[:, None, ...],
@@ -204,6 +206,8 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--pred_extension', type=str, choices=extension_choices)
 
     parser.add_argument('--num_classes', '-K', '-C', type=int, required=True)
+    parser.add_argument('--ignored_classes', type=int, nargs='*',
+                        help="Classes to skip (for instance background, or any other non-predicted class).")
     parser.add_argument('--metrics', type=str, nargs='+', choices=['3d_hd', '3d_hd95', '3d_assd'],
                         help='The metrics to compute.')
 
@@ -245,7 +249,7 @@ def main() -> None:
                         shuffle=False,
                         drop_last=False)
 
-    metrics = compute_metrics(loader, metrics, device, K)
+    metrics = compute_metrics(loader, metrics, device, K, ignore=args.ignored_classes)
 
     print(f'>>> {args.pred_folder}')
     for key, v in metrics.items():
