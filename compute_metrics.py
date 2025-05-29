@@ -47,28 +47,28 @@ from tqdm import tqdm
 from distorch.metrics import boundary_metrics
 
 
-# Assert utils
-def is_simplex(t: Tensor, axis=1) -> bool:
-    _sum = t.sum(axis).type(torch.float32)
-    return torch.allclose(_sum, _sum.new_ones(()))  # verify allclose(_sum, 1) with broadcasting
+# # Assert utils
+# def is_simplex(t: Tensor, axis=1) -> bool:
+#     _sum = t.sum(axis).type(torch.float32)
+#     return torch.allclose(_sum, _sum.new_ones(()))  # verify allclose(_sum, 1) with broadcasting
 
 
-def is_one_hot(t: Tensor, axis=1) -> bool:
-    return is_simplex(t, axis) and torch.isin(torch.unique(t), t.new_tensor([0, 1]), assume_unique=True).all().item()
+# def is_one_hot(t: Tensor, axis=1) -> bool:
+#     return is_simplex(t, axis) and torch.isin(torch.unique(t), t.new_tensor([0, 1]), assume_unique=True).all().item()
 
 
-# Pre-processing utils
-def class2one_hot(seg: Tensor, K: int) -> Tensor:
-    assert torch.isin(u := torch.unique(seg), seg.new_tensor(list(range(K))), assume_unique=True).all(), (u, K)
+# # Pre-processing utils
+# def class2one_hot(seg: Tensor, K: int) -> Tensor:
+#     assert torch.isin(u := torch.unique(seg), seg.new_tensor(list(range(K))), assume_unique=True).all(), (u, K)
 
-    b, *img_shape = seg.shape  # type: tuple[int, ...]
-    seg_one_hot = seg.new_zeros((b, K, *img_shape), dtype=torch.int32)
-    seg_one_hot.scatter_(1, seg[:, None, ...], 1)
+#     b, *img_shape = seg.shape  # type: tuple[int, ...]
+#     seg_one_hot = seg.new_zeros((b, K, *img_shape), dtype=torch.int32)
+#     seg_one_hot.scatter_(1, seg[:, None, ...], 1)
 
-    assert seg_one_hot.shape == (b, K, *img_shape)
-    assert is_one_hot(seg_one_hot)
+#     assert seg_one_hot.shape == (b, K, *img_shape)
+#     assert is_one_hot(seg_one_hot)
 
-    return seg_one_hot
+#     return seg_one_hot
 
 
 # Others utils
@@ -159,32 +159,34 @@ class VolumeDataset(Dataset):
                 'stem': stem}
 
 
-def compute_metrics(loader, metrics: dict[str, Tensor], device, K: int) -> dict[str, Tensor]:
+def compute_metrics(loader, metrics: dict[str, Tensor], device, K: int,
+                    ignore: list[int] | None = None) -> dict[str, Tensor]:
     desc = '>> Computing'
     tq_iter = tqdm_(enumerate(loader), total=len(loader), desc=desc)
     with torch.no_grad():
         for j, data in tq_iter:
-            ref: Tensor = class2one_hot(data['ref'].to(device), K=K)
-            pred: Tensor = class2one_hot(data['pred'].to(device), K=K)
+            ref: Tensor = data['ref'].to(device)
+            pred: Tensor = data['pred'].to(device)
             voxelspacing: tuple[float, ...] = data['voxelspacing']
 
             assert pred.shape == ref.shape
-            assert is_simplex(pred)  # Predictions could be one-hot or probabilities
-            assert is_one_hot(ref), (ref.shape)
 
-            B, K_, *scan_shape = ref.shape
-            assert K == K_
+            B, *scan_shape = ref.shape
             assert B == 1, (B, ref.shape)
 
-            if set(metrics.keys()).intersection({'3d_hd', '3d_hd95', '3d_assd'}):
-                h = boundary_metrics(pred, ref, element_size=tuple(float(e) for e in voxelspacing))
+            for k in range(K):
 
-                if '3d_hd' in metrics.keys():
-                    metrics['3d_hd'][j] = h.Hausdorff
-                if '3d_hd95' in metrics.keys():
-                    metrics['3d_hd95'][j] = (h.Hausdorff95_1_to_2 + h.Hausdorff95_2_to_1) / 2
-                if '3d_assd' in metrics.keys():
-                    metrics['3d_assd'][j] = h.AverageSymmetricSurfaceDistance
+                if set(metrics.keys()).intersection({'3d_hd', '3d_hd95', '3d_assd'}):
+                    h = boundary_metrics((pred == k)[:, None, ...],
+                                         (ref == k)[:, None, ...],
+                                         weight_by_size=False,
+                                         element_size=tuple(float(e) for e in voxelspacing))
+                    if '3d_hd' in metrics.keys():
+                        metrics['3d_hd'][j, k] = h.Hausdorff
+                    if '3d_hd95' in metrics.keys():
+                        metrics['3d_hd95'][j, k] = (h.Hausdorff95_1_to_2 + h.Hausdorff95_2_to_1) / 2
+                    if '3d_assd' in metrics.keys():
+                        metrics['3d_assd'][j, k] = h.AverageSymmetricSurfaceDistance
 
             tq_iter.set_postfix({'batch_shape': list(pred.shape),
                                  'voxelspacing': [f'{float(e):.3f}' for e in voxelspacing]})
