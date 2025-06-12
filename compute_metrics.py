@@ -250,8 +250,8 @@ def main() -> None:
     K: int = args.num_classes
 
     # p.stem does not handle well .nii.gz:
-    stems: list[str] = list(map(lambda p: str(p.name).removesuffix(args.ref_extension),
-                                args.ref_folder.glob(f'*{args.ref_extension}')))
+    stems: list[str] = sorted(map(lambda p: str(p.name).removesuffix(args.ref_extension),
+                                  args.ref_folder.glob(f'*{args.ref_extension}')))
     if args.chill:
         stems = [s for s in stems if (args.pred_folder / (s + args.pred_extension)).exists()]
 
