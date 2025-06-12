@@ -35,6 +35,8 @@ import os
 from functools import partial
 from pathlib import Path
 from pprint import pprint
+from functools import partial
+from collections import defaultdict
 
 import nibabel as nib
 import numpy as np
@@ -159,8 +161,15 @@ class VolumeDataset(Dataset):
                 'stem': stem}
 
 
-def compute_metrics(loader, metrics: dict[str, Tensor], device, K: int,
-                    ignore: list[int] | None = None) -> dict[str, Tensor]:
+def compute_metrics(loader, metrics: list[str], device, K: int,
+                    ignore: list[int] | None = None) -> dict[str, dict[str, Tensor]]:
+
+    cmp_metrics: dict[str, dict[str, Tensor]]
+    # Seems silly, but remember that we process classes one at a time, and may ignore some
+    cmp_metrics = {m: defaultdict(lambda: torch.zeros((K,),
+                                                      dtype=torch.float32,
+                                                      device=device))
+                   for m in metrics}
     desc = '>> Computing'
     tq_iter = tqdm_(enumerate(loader), total=len(loader), desc=desc)
     with torch.no_grad():
@@ -168,6 +177,7 @@ def compute_metrics(loader, metrics: dict[str, Tensor], device, K: int,
             ref: Tensor = data['ref'].to(device)
             pred: Tensor = data['pred'].to(device)
             voxelspacing: tuple[float, ...] = data['voxelspacing']
+            stem: str = data['stem'][0]
 
             assert pred.shape == ref.shape
 
@@ -178,22 +188,23 @@ def compute_metrics(loader, metrics: dict[str, Tensor], device, K: int,
                 if ignore is not None and k in ignore:
                     continue
 
-                if set(metrics.keys()).intersection({'3d_hd', '3d_hd95', '3d_assd'}):
+                if set(metrics).intersection({'3d_hd', '3d_hd95', '3d_assd'}):
                     h = boundary_metrics((pred == k)[:, None, ...],
                                          (ref == k)[:, None, ...],
                                          weight_by_size=False,
                                          element_size=tuple(float(e) for e in voxelspacing))
-                    if '3d_hd' in metrics.keys():
-                        metrics['3d_hd'][j, k] = h.Hausdorff
-                    if '3d_hd95' in metrics.keys():
-                        metrics['3d_hd95'][j, k] = (h.Hausdorff95_1_to_2 + h.Hausdorff95_2_to_1) / 2
-                    if '3d_assd' in metrics.keys():
-                        metrics['3d_assd'][j, k] = h.AverageSymmetricSurfaceDistance
+
+                    if '3d_hd' in metrics:
+                        cmp_metrics['3d_hd'][stem][k] = h.Hausdorff
+                    if '3d_hd95' in metrics:
+                        cmp_metrics['3d_hd95'][stem][k] = (h.Hausdorff95_1_to_2 + h.Hausdorff95_2_to_1) / 2
+                    if '3d_assd' in metrics:
+                        cmp_metrics['3d_assd'][stem][k] = h.AverageSymmetricSurfaceDistance
 
             tq_iter.set_postfix({'batch_shape': list(pred.shape),
                                  'voxelspacing': [f'{float(e):.3f}' for e in voxelspacing]})
 
-    return metrics
+    return cmp_metrics
 
 
 def get_args() -> argparse.Namespace:
@@ -244,10 +255,6 @@ def main() -> None:
     if args.chill:
         stems = [s for s in stems if (args.pred_folder / (s + args.pred_extension)).exists()]
 
-    total_volumes = len(stems)
-    metrics: dict[str, Tensor] = {m: torch.zeros((total_volumes, K), dtype=torch.float32, device=device)
-                                  for m in args.metrics}
-
     dt_set = VolumeDataset(stems, args.ref_folder, args.pred_folder,
                            args.ref_extension, args.pred_extension, args.num_classes,
                            quiet=False)
@@ -257,20 +264,31 @@ def main() -> None:
                         shuffle=False,
                         drop_last=False)
 
-    metrics = compute_metrics(loader, metrics, device, K, ignore=args.ignored_classes)
-
-    print(f'>>> {args.pred_folder}')
-    for key, v in metrics.items():
-        print(key, v.mean(dim=0).cpu().numpy())
+    computed_metrics: dict[str, dict[str, Tensor]]  # computedmetrics[metric][stem][class]
+    computed_metrics = compute_metrics(loader, args.metrics, device, K, ignore=args.ignored_classes)
 
     if args.save_folder:
         savedir: Path = Path(args.save_folder)
         savedir.mkdir(parents=True, exist_ok=True)
-        for key, e in metrics.items():
-            dest: Path = savedir / f'{key}.npy'
-            assert not dest.exists() or args.overwrite
 
-            np.save(dest, e.cpu().numpy())
+    print(f'>>> {args.pred_folder}')
+    for key, v in computed_metrics.items():
+        np_dict: dict[str, np.ndarray] = {k: t.cpu().numpy() for k, t in v.items()}
+
+        stacked: np.ndarray = np.stack(list(np_dict.values()))
+        assert stacked.shape == (len(stems), K)
+
+        print(key, stacked.mean(axis=0))
+
+        if args.save_folder:
+            dest_npz: Path = savedir / f'{key}.npz'
+            assert not dest_npz.exists() or args.overwrite
+            np.savez(dest_npz, **np_dict)
+
+            dest_npy: Path = savedir / f'{key}.npy'
+            assert not dest_npy.exists() or args.overwrite
+
+            np.save(dest_npy, stacked)
 
 
 if __name__ == '__main__':
