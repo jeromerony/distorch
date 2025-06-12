@@ -216,6 +216,9 @@ def get_args() -> argparse.Namespace:
                         help="Number of workers for the dataloader. "
                              "Higher is not always better, depending on hardware (CPU notably).")
     parser.add_argument('--overwrite', action='store_true', help='Overwrite existing metrics output, without prompt.')
+    parser.add_argument('--chill', action='store_true',
+                        help="Does not enforce that both folders have exactly the same scans inside,"
+                             " keep the intersection of the two.")
 
     parser.add_argument('--save_folder', type=Path, default=None, help='The folder where to save the metrics')
 
@@ -238,6 +241,8 @@ def main() -> None:
     # p.stem does not handle well .nii.gz:
     stems: list[str] = list(map(lambda p: str(p.name).removesuffix(args.ref_extension),
                                 args.ref_folder.glob(f'*{args.ref_extension}')))
+    if args.chill:
+        stems = [s for s in stems if (args.pred_folder / (s + args.pred_extension)).exists()]
 
     total_volumes = len(stems)
     metrics: dict[str, Tensor] = {m: torch.zeros((total_volumes, K), dtype=torch.float32, device=device)
