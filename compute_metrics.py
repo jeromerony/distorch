@@ -220,13 +220,15 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--ignored_classes', type=int, nargs='*',
                         help="Classes to skip (for instance background, or any other non-predicted class).")
     parser.add_argument('--metrics', type=str, nargs='+', choices=['3d_hd', '3d_hd95', '3d_assd'],
-                        help='The metrics to compute.')
+                        help="The metrics to compute.")
 
     parser.add_argument('--cpu', action='store_true')
     parser.add_argument('--num_workers', type=int, default=len(os.sched_getaffinity(0)) // 2,
                         help="Number of workers for the dataloader. "
                              "Higher is not always better, depending on hardware (CPU notably).")
-    parser.add_argument('--overwrite', action='store_true', help='Overwrite existing metrics output, without prompt.')
+    parser.add_argument('--overwrite', action='store_true',
+                        help="Overwrite existing metrics output, without prompt.")
+
     parser.add_argument('--chill', action='store_true',
                         help="Does not enforce that both folders have exactly the same scans inside,"
                              " keep the intersection of the two.")
