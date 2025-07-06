@@ -189,7 +189,7 @@ def segmentation_metrics(pred: Tensor, ground_truth: Tensor, num_classes: int) -
     class_gt = confusion_matrix.sum(dim=1)
     class_pred = confusion_matrix.sum(dim=0)
     dice_denominator = class_gt + class_pred
-    class_dice = torch.where(dice_denominator > 0, 2 * class_TP / (dice_denominator), float('nan'))
+    class_dice = torch.where(dice_denominator > 0, 2 * class_TP / dice_denominator, float('nan'))
     jaccard_denominator = dice_denominator - class_TP
     class_jaccard = torch.where(jaccard_denominator > 0, class_TP / jaccard_denominator, float('nan'))
     pixel_accuracy = torch.where(class_gt > 0, class_TP / class_gt, float('nan'))
