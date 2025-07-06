@@ -196,7 +196,7 @@ def segmentation_metrics(pred: Tensor, ground_truth: Tensor, num_classes: int) -
     jaccard_denominator = dice_denominator - class_TP
     class_jaccard = torch.where(jaccard_denominator > 0, class_TP / jaccard_denominator, float('nan'))
     pixel_accuracy = torch.where(class_gt > 0, class_TP / class_gt, float('nan'))
-    overall_pixel_accuracy = class_TP.sum(dim=1) / confusion_matrix.sum(dim=1)
+    overall_pixel_accuracy = class_TP.sum(dim=1) / confusion_matrix.sum(dim=(1, 2))
     return SegmentationMetrics(
         dice=class_dice,
         jaccard=class_jaccard,
