@@ -182,12 +182,13 @@ class SegmentationMetrics:
 
 
 def segmentation_metrics(pred: Tensor, ground_truth: Tensor, num_classes: int) -> SegmentationMetrics:
-    confusion_matrix = [torch.bincount(p.add(gt, alpha=num_classes), minlength=num_classes ** 2)
-                                    for p, gt in zip(pred.flatten(1), ground_truth.flatten(1))]
-    confusion_matrix = torch.stack(confusion_matrix, dim=0).unflatten(dim=1, sizes=(num_classes, num_classes))
     class_TP = torch.diag(confusion_matrix)
     class_gt = confusion_matrix.sum(dim=1)
     class_pred = confusion_matrix.sum(dim=0)
+    confusion_matrix = ground_truth.new_zeros(ground_truth.size(0), num_classes ** 2, dtype=torch.long)
+    confusion_matrix.scatter_(
+        dim=1, index=pred.add(ground_truth, alpha=num_classes).flatten(1), value=1, reduce='add'
+    )  # batched bincount
     dice_denominator = class_gt + class_pred
     class_dice = torch.where(dice_denominator > 0, 2 * class_TP / dice_denominator, float('nan'))
     jaccard_denominator = dice_denominator - class_TP
