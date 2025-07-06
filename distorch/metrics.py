@@ -182,7 +182,9 @@ class SegmentationMetrics:
 
 
 def segmentation_metrics(pred: Tensor, ground_truth: Tensor, num_classes: int) -> SegmentationMetrics:
-    confusion_matrix = torch.bincount(pred.add(ground_truth, alpha=num_classes).flatten(1), minlength=num_classes ** 2)
+    confusion_matrix = [torch.bincount(p.add(gt, alpha=num_classes), minlength=num_classes ** 2)
+                                    for p, gt in zip(pred.flatten(1), ground_truth.flatten(1))]
+    confusion_matrix = torch.stack(confusion_matrix, dim=0).unflatten(dim=1, sizes=(num_classes, num_classes))
     class_TP = torch.diag(confusion_matrix)
     class_gt = confusion_matrix.sum(dim=1)
     class_pred = confusion_matrix.sum(dim=0)
