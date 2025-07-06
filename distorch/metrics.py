@@ -181,6 +181,7 @@ class SegmentationMetrics:
     overall_pixel_accuracy: Tensor
 
 
+@batchify_input_output
 def segmentation_metrics(pred: Tensor, ground_truth: Tensor, num_classes: int) -> SegmentationMetrics:
     confusion_matrix = ground_truth.new_zeros(ground_truth.size(0), num_classes ** 2, dtype=torch.long)
     confusion_matrix.scatter_(
