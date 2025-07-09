@@ -106,7 +106,6 @@ This repository is under the [BSD 3](LICENSE) license. For citation, currently t
 @misc{distorch,
   author = {Jérôme Rony and Hoel Kervadec},
   title = {DisTorch: A fast GPU implementation of 3D Hausdorff Distance},
-  note = {Accessed on 2025-MM-DD},
   year = {2025},
   url = {https://github.com/jeromerony/distorch}
 }
