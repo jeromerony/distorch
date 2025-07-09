@@ -16,7 +16,7 @@ dependencies = [
     'torch>=2.0',
 ]
 classifiers = [
-    'Development Status :: 2 - Pre-Alpha',
+    'Development Status :: 3 - Alpha',
     'Intended Audience :: Science/Research',
     'Natural Language :: English',
     'Programming Language :: Python :: 3.11',

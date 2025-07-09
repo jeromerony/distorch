@@ -1,9 +1,5 @@
 # DisTorch: A fast GPU implementation of 3D Hausdorff Distance
 
-**Disclaimer: this library is in a pre-alpha state. Dependencies, features and API are expected to change.
-Additionally, current development is done on the `main` branch.
-This will change once we reach a stable version and produce a release on PyPI.**
-
 ## Installation
 
 This library relies on CUDA, through `Triton` and/or `KeOps` packages.
