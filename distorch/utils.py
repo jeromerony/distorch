@@ -73,7 +73,7 @@ def batchify_n_args(n: Optional[int] = None):
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
             if n is None:
-                to_batchify: list[Tensor] = args
+                to_batchify: tuple[Tensor, ...] = args
                 args = ()
             else:
                 if n <= len(args):
@@ -90,10 +90,10 @@ def batchify_n_args(n: Optional[int] = None):
                 raise ValueError(f'Provided tensors have 1 dim ({shape}), should be at least 2.')
 
             if ndim == 2:
-                to_batchify = [t.unsqueeze(0) for t in to_batchify]
+                to_batchify = tuple(t.unsqueeze(0) for t in to_batchify)
             elif ndim > 4:
                 batch_shape = shape[:-3]
-                to_batchify = [t.flatten(start_dim=0, end_dim=-4) for t in to_batchify]
+                to_batchify = tuple(t.flatten(start_dim=0, end_dim=-4) for t in to_batchify)
 
             output = f(*to_batchify, *args, **kwargs)
 
