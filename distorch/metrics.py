@@ -50,7 +50,7 @@ def mask_to_coords(mask: Tensor, element_size: Optional[tuple[int | float, ...]]
 @batchify_input_output
 def set_metrics(set1: Tensor,
                 set2: Tensor,
-                /,
+                /, *,
                 element_size: Optional[tuple[int | float, ...]] = None,
                 distance_threshold: float = 1) -> DistanceMetrics:
     assert set1.shape == set2.shape

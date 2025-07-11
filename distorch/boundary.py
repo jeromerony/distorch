@@ -135,7 +135,7 @@ def vertices_size_3d(element_size: Optional[tuple[float, float, float]] = None) 
 
 @batchify_input_output
 def is_surface_vertex(images: Tensor,
-                      /,
+                      /, *,
                       return_size: bool = False,
                       element_size: Optional[tuple[float, ...]] = None) -> Tensor:
     """
