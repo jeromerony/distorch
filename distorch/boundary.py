@@ -6,11 +6,11 @@ import torch
 from torch import Tensor
 from torch.nn import functional as F
 
-from distorch.utils import batchify_input_output
+from distorch.utils import batchify_n_args
 
 
-@batchify_input_output
-def is_border_element(images: Tensor, /) -> Tensor:
+@batchify_n_args(n=1)
+def is_border_element(images: Tensor) -> Tensor:
     """
     For a batch of binary images of shape (b, h, w) or 3d volumes of shape (b, h, w, d), computes border
     pixels / voxels based on counting neighbors.
@@ -133,9 +133,8 @@ def vertices_size_3d(element_size: Optional[tuple[float, float, float]] = None) 
     return torch.from_numpy(sizes)
 
 
-@batchify_input_output
+@batchify_n_args(n=1)
 def is_surface_vertex(images: Tensor,
-                      /,
                       return_size: bool = False,
                       element_size: Optional[tuple[float, ...]] = None) -> Tensor:
     """
