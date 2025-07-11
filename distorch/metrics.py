@@ -7,7 +7,7 @@ from torch import SymInt, Tensor
 
 from distorch.boundary import is_border_element, is_surface_vertex
 from distorch.min_pairwise_distance import minimum_distances
-from distorch.utils import batchify_input_output, zero_padded_nonnegative_quantile
+from distorch.utils import batchify_n_args, zero_padded_nonnegative_quantile
 
 
 @dataclass
@@ -47,10 +47,9 @@ def mask_to_coords(mask: Tensor, element_size: Optional[tuple[int | float, ...]]
     return torch.stack(coords, dim=1)
 
 
-@batchify_input_output
+@batchify_n_args(n=2)
 def set_metrics(set1: Tensor,
                 set2: Tensor,
-                /, *,
                 element_size: Optional[tuple[int | float, ...]] = None,
                 distance_threshold: float = 1) -> DistanceMetrics:
     assert set1.shape == set2.shape
@@ -118,7 +117,6 @@ def set_metrics(set1: Tensor,
 
 def boundary_metrics(images1: Tensor,
                      images2: Tensor,
-                     /,
                      weight_by_size: bool = True,
                      element_size: Optional[tuple[int | float, ...]] = None,
                      **kwargs) -> DistanceMetrics:
@@ -148,7 +146,7 @@ def boundary_metrics(images1: Tensor,
     return set_metrics(vertices_1, vertices_2, element_size=element_size, **kwargs)
 
 
-def pixel_center_metrics(images1: Tensor, images2: Tensor, /, **kwargs) -> DistanceMetrics:
+def pixel_center_metrics(images1: Tensor, images2: Tensor, **kwargs) -> DistanceMetrics:
     """
     Computes distance between batches of images (or 3d volumes). The images should be binary, where True
     indicates that an element (i.e. pixel/voxel) belongs to the set for which we want to compute the Hausdorff distance.
@@ -181,8 +179,8 @@ class SegmentationMetrics:
     overall_pixel_accuracy: Tensor
 
 
-@batchify_input_output
-def segmentation_metrics(pred: Tensor, ground_truth: Tensor, /, *, num_classes: int) -> SegmentationMetrics:
+@batchify_n_args(n=2)
+def segmentation_metrics(pred: Tensor, ground_truth: Tensor, num_classes: int) -> SegmentationMetrics:
     confusion_matrix = ground_truth.new_zeros(ground_truth.size(0), num_classes ** 2, dtype=torch.long)
     confusion_matrix.scatter_(
         dim=1, index=pred.add(ground_truth, alpha=num_classes).flatten(1), value=1, reduce='add'

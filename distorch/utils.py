@@ -68,35 +68,49 @@ def zero_padded_nonnegative_quantile(x: Tensor, q: float, n: int) -> Tensor:
     return value
 
 
-def batchify_input_output(f):
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        assert all(isinstance(arg, Tensor) for arg in args)
-        args: list[Tensor]
-        ndim = args[0].ndim
-        if ndim == 1:
-            raise ValueError(f'Provided tensors have 1 dim ({args[0].shape}), should be at least 2.')
+def batchify_n_args(n: Optional[int] = None):
+    def batchify_input_output(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            if n is None:
+                to_batchify: list[Tensor] = args
+                args = ()
+            else:
+                if n <= len(args):
+                    to_batchify, args = args[:n], args[n:]
+                else:
+                    kwargs_keys = tuple(kwargs.keys())  # kwargs keep order since Python 3.6
+                    to_batchify = args + tuple(kwargs.pop(k) for k in kwargs_keys[:n - len(args)])
+                    args = ()
+            assert all(isinstance(t, Tensor) for t in to_batchify)
 
-        if ndim == 2:
-            args = [arg.unsqueeze(0) for arg in args]
-        elif ndim > 4:
-            batch_shape = args[0].shape[:-3]
-            args = [arg.flatten(start_dim=0, end_dim=-4) for arg in args]
+            shape = to_batchify[0].shape
+            ndim = to_batchify[0].ndim
+            if ndim == 1:
+                raise ValueError(f'Provided tensors have 1 dim ({shape}), should be at least 2.')
 
-        output = f(*args, **kwargs)
+            if ndim == 2:
+                to_batchify = [t.unsqueeze(0) for t in to_batchify]
+            elif ndim > 4:
+                batch_shape = shape[:-3]
+                to_batchify = [t.flatten(start_dim=0, end_dim=-4) for t in to_batchify]
 
-        if ndim == 2 or ndim > 4:
-            debatchify = (lambda t: t.squeeze(0)) if ndim == 2 else (lambda t: t.unflatten(0, batch_shape))
-            if isinstance(output, Tensor):
-                output = debatchify(output)
-            elif isinstance(output, (list, tuple)):
-                output = type(output)(map(debatchify, output))
-            elif isinstance(output, dict):
-                output = {k: debatchify(v) for k, v in output.items()}
-            elif dataclasses.is_dataclass(output):
-                for field in dataclasses.fields(output):
-                    setattr(output, field.name, debatchify(getattr(output, field.name)))
+            output = f(*to_batchify, *args, **kwargs)
 
-        return output
+            if ndim == 2 or ndim > 4:
+                debatchify = (lambda t: t.squeeze(0)) if ndim == 2 else (lambda t: t.unflatten(0, batch_shape))
+                if isinstance(output, Tensor):
+                    output = debatchify(output)
+                elif isinstance(output, (list, tuple)):
+                    output = type(output)(map(debatchify, output))
+                elif isinstance(output, dict):
+                    output = {k: debatchify(v) for k, v in output.items()}
+                elif dataclasses.is_dataclass(output):
+                    for field in dataclasses.fields(output):
+                        setattr(output, field.name, debatchify(getattr(output, field.name)))
 
-    return wrapper
+            return output
+
+        return wrapper
+
+    return batchify_input_output
