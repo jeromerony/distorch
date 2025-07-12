@@ -87,8 +87,8 @@ def batchify_args(*args_to_batchify: str):
             shape = kwargs[args_to_batchify[0]].shape
             assert all(kwargs[k].shape == shape for k in args_to_batchify)
             ndim = len(shape)
-            if ndim == 1:
-                raise ValueError(f'Provided tensors have 1 dim ({shape}), should be at least 2.')
+            if ndim < 2:
+                raise ValueError(f'Provided tensors have fewer than 2 dims ({shape}), should be at least 2.')
 
             batchify_func = debatchify_func = lambda t: t
             if ndim == 2:
