@@ -1,5 +1,6 @@
 import dataclasses
 import functools
+import inspect
 import math
 from typing import Optional
 
@@ -68,46 +69,51 @@ def zero_padded_nonnegative_quantile(x: Tensor, q: float, n: int) -> Tensor:
     return value
 
 
-def batchify_n_args(n: Optional[int] = None):
+def batchify_args(*args_to_batchify: str):
     def batchify_input_output(f):
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
-            if n is None:
-                to_batchify: tuple[Tensor, ...] = args
-                args = ()
-            else:
-                if n <= len(args):
-                    to_batchify, args = args[:n], args[n:]
-                else:
-                    kwargs_keys = tuple(kwargs.keys())  # kwargs keep order since Python 3.6
-                    to_batchify = args + tuple(kwargs.pop(k) for k in kwargs_keys[:n - len(args)])
-                    args = ()
-            assert all(isinstance(t, Tensor) for t in to_batchify)
+            # transform all args to kwargs
+            if args:
+                sig = inspect.signature(f)
+                param_names = list(sig.parameters.keys())
 
-            shape = to_batchify[0].shape
-            ndim = to_batchify[0].ndim
-            if ndim == 1:
-                raise ValueError(f'Provided tensors have 1 dim ({shape}), should be at least 2.')
+                for i, arg in enumerate(args):
+                    if i < len(param_names):
+                        kwargs[param_names[i]] = arg
+                    else:
+                        raise TypeError(f"Too many positional arguments for {f.__name__}")
 
+            shape = kwargs[args_to_batchify[0]].shape
+            assert all(kwargs[k].shape == shape for k in args_to_batchify)
+            ndim = len(shape)
+            if ndim < 2:
+                raise ValueError(f'Provided tensors have fewer than 2 dims ({shape}), should be at least 2.')
+
+            batchify_func = debatchify_func = lambda t: t
             if ndim == 2:
-                to_batchify = tuple(t.unsqueeze(0) for t in to_batchify)
+                batchify_func = lambda t: t.unsqueeze(0)
+                debatchify_func = lambda t: t.squeeze(0)
             elif ndim > 4:
                 batch_shape = shape[:-3]
-                to_batchify = tuple(t.flatten(start_dim=0, end_dim=-4) for t in to_batchify)
+                batchify_func = lambda t: t.flatten(start_dim=0, end_dim=-4)
+                debatchify_func = lambda t: t.unflatten(0, batch_shape)
 
-            output = f(*to_batchify, *args, **kwargs)
+            for name in args_to_batchify:
+                kwargs[name] = batchify_func(kwargs[name])
+
+            output = f(**kwargs)
 
             if ndim == 2 or ndim > 4:
-                debatchify = (lambda t: t.squeeze(0)) if ndim == 2 else (lambda t: t.unflatten(0, batch_shape))
                 if isinstance(output, Tensor):
-                    output = debatchify(output)
+                    output = debatchify_func(output)
                 elif isinstance(output, (list, tuple)):
-                    output = type(output)(map(debatchify, output))
+                    output = type(output)(map(debatchify_func, output))
                 elif isinstance(output, dict):
-                    output = {k: debatchify(v) for k, v in output.items()}
+                    output = {k: debatchify_func(v) for k, v in output.items()}
                 elif dataclasses.is_dataclass(output):
                     for field in dataclasses.fields(output):
-                        setattr(output, field.name, debatchify(getattr(output, field.name)))
+                        setattr(output, field.name, debatchify_func(getattr(output, field.name)))
 
             return output
 
