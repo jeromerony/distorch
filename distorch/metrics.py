@@ -7,7 +7,7 @@ from torch import SymInt, Tensor
 
 from distorch.boundary import is_border_element, is_surface_vertex
 from distorch.min_pairwise_distance import minimum_distances
-from distorch.utils import batchify_n_args, zero_padded_nonnegative_quantile
+from distorch.utils import batchify_args, zero_padded_nonnegative_quantile
 
 
 @dataclass
@@ -47,7 +47,7 @@ def mask_to_coords(mask: Tensor, element_size: Optional[tuple[int | float, ...]]
     return torch.stack(coords, dim=1)
 
 
-@batchify_n_args(n=2)
+@batchify_args('set1', 'set2')
 def set_metrics(set1: Tensor,
                 set2: Tensor,
                 element_size: Optional[tuple[int | float, ...]] = None,
@@ -179,7 +179,7 @@ class SegmentationMetrics:
     overall_pixel_accuracy: Tensor
 
 
-@batchify_n_args(n=2)
+@batchify_args('pred', 'ground_truth')
 def segmentation_metrics(pred: Tensor, ground_truth: Tensor, num_classes: int) -> SegmentationMetrics:
     confusion_matrix = ground_truth.new_zeros(ground_truth.size(0), num_classes ** 2, dtype=torch.long)
     confusion_matrix.scatter_(
