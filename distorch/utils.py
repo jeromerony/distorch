@@ -2,7 +2,7 @@ import dataclasses
 import functools
 import inspect
 import math
-from typing import Optional, Sequence
+from typing import Optional
 
 import torch
 from torch import Tensor
@@ -69,7 +69,7 @@ def zero_padded_nonnegative_quantile(x: Tensor, q: float, n: int) -> Tensor:
     return value
 
 
-def batchify_args(*args_to_batchify: Sequence[str]):
+def batchify_args(*args_to_batchify: str):
     def batchify_input_output(f):
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
