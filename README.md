@@ -88,12 +88,12 @@ print(metrics)
 DistanceMetrics(Hausdorff=tensor(1.4142, device='cuda:0'),
                 Hausdorff95_1_to_2=tensor(1., device='cuda:0'),
                 Hausdorff95_2_to_1=tensor(1.1036, device='cuda:0'),
-                AverageSurfaceDistance_1_to_2=tensor(0.2308, device='cuda:0'),
+                AverageSurfaceDistance_1_to_2=tensor(0.2857, device='cuda:0'),
                 AverageSurfaceDistance_2_to_1=tensor(0.4009, device='cuda:0'),
-                AverageSymmetricSurfaceDistance=tensor(0.3246, device='cuda:0'),
+                AverageSymmetricSurfaceDistance=tensor(0.3471, device='cuda:0'),
                 NormalizedSurfaceDistance_1_to_2=tensor(1., device='cuda:0'),
                 NormalizedSurfaceDistance_2_to_1=tensor(0.9375, device='cuda:0'),
-                NormalizedSymmetricSurfaceDistance=tensor(0.9655, device='cuda:0'))
+                NormalizedSymmetricSurfaceDistance=tensor(0.9667, device='cuda:0'))
 ```
 
 ## License and citation
