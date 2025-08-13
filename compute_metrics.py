@@ -107,7 +107,7 @@ tqdm_ = partial(TQDM, dynamic_ncols=True,
 class VolumeDataset(Dataset):
     def __init__(self, stems: list[str], ref_folder: Path, pred_folder: Path,
                  ref_extension: str, pred_extension: str, K: int,
-                 /, quiet: bool = False) -> None:
+                 /, quiet: bool = False, crop: bool = False, bg_k: int = 0) -> None:
 
         self.stems: list[str] = stems
         self.ref_folder: Path = ref_folder
@@ -115,6 +115,8 @@ class VolumeDataset(Dataset):
         self.ref_extension: str = ref_extension
         self.pred_extension: str = pred_extension
         self.K: int = K
+        self.crop: bool = crop
+        self.bg_k: int = bg_k
 
         if not quiet:
             print(f'{tc.BLUE}>>> Initializing Volume dataset with {len(self.stems)} volumes{tc.RESET}')
@@ -154,6 +156,32 @@ class VolumeDataset(Dataset):
                 pred = np.asarray(pred_obj.dataobj, dtype=int)  # type: ignore
             case _:
                 raise NotImplementedError(self.ref_extension, self.pred_extension)
+
+        if self.crop:
+            r_blob = (ref != self.bg_k)
+
+            r_coords = np.argwhere(r_blob)
+            r_xyz1 = r_coords.min(axis=0)
+            r_xyz2 = r_coords.max(axis=0)
+
+            p_blob = (pred != self.bg_k)
+
+            p_coords = np.argwhere(p_blob)
+            p_xyz1 = p_coords.min(axis=0)
+            p_xyz2 = p_coords.max(axis=0)
+            # print(f"{r_xyz1=}, {r_xyz2=}, {p_xyz1=}, {p_xyz2=}")
+
+            xyz1 = np.minimum(r_xyz1, p_xyz1)
+            xyz2 = np.maximum(r_xyz2, p_xyz2)
+            slices = [slice(*pair) for pair in zip(xyz1.tolist(), xyz2.tolist())]
+
+            # print(f"{r_xyz1=}, {r_xyz2=}, {p_xyz1=}, {p_xyz2=}, {xyz1=}, {xyz2=}, {slices}")
+            ref = ref[*slices]
+            pred = pred[*slices]
+            assert ref.shape == pred.shape
+            assert (ref != self.bg_k).sum() == r_blob.sum()
+            assert (pred != self.bg_k).sum() == p_blob.sum()
+
 
         return {'ref': torch.as_tensor(ref, dtype=torch.uint8),
                 'pred': torch.as_tensor(pred, dtype=torch.uint8),
@@ -248,6 +276,11 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--overwrite', action='store_true',
                         help="Overwrite existing metrics output, without prompt.")
 
+    parser.add_argument('--crop', action='store_true',
+                        help="Crop the scans around the objects, discarding parts that contain only"
+                             " the background class.")
+    parser.add_argument('--background_class', type=int, default=0)
+
     parser.add_argument('--chill', action='store_true',
                         help="Does not enforce that both folders have exactly the same scans inside,"
                              " keep the intersection of the two.")
@@ -278,7 +311,9 @@ def main() -> None:
 
     dt_set = VolumeDataset(stems, args.ref_folder, args.pred_folder,
                            args.ref_extension, args.pred_extension, args.num_classes,
-                           quiet=False)
+                           quiet=False,
+                           crop=args.crop,
+                           bg_k=args.background_class)
     loader = DataLoader(dt_set,
                         batch_size=1,
                         num_workers=args.num_workers,
