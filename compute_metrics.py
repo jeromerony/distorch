@@ -172,7 +172,7 @@ class VolumeDataset(Dataset):
             # print(f"{r_xyz1=}, {r_xyz2=}, {p_xyz1=}, {p_xyz2=}")
 
             xyz1 = np.minimum(r_xyz1, p_xyz1)
-            xyz2 = np.maximum(r_xyz2, p_xyz2)
+            xyz2 = np.maximum(r_xyz2, p_xyz2) + 1
             slices = [slice(*pair) for pair in zip(xyz1.tolist(), xyz2.tolist())]
 
             # print(f"{r_xyz1=}, {r_xyz2=}, {p_xyz1=}, {p_xyz2=}, {xyz1=}, {xyz2=}, {slices}")
