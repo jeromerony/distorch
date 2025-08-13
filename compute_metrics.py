@@ -46,7 +46,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from distorch.metrics import boundary_metrics
+from distorch.metrics import boundary_metrics, overlap_metrics
 
 
 # # Assert utils
@@ -184,13 +184,30 @@ def compute_metrics(loader, metrics: list[str], device, K: int,
             B, *scan_shape = ref.shape
             assert B == 1, (B, ref.shape)
 
+            if set(metrics).intersection(['3d_dice', '3d_jaccard',
+                                          'pixel_accuracy', 'confusion_matrix']):
+                s = overlap_metrics(pred.type(torch.int64),
+                                    ref.type(torch.int64),
+                                    K)
+                if '3d_dice' in metrics:
+                    cmp_metrics['3d_dice'][stem] = s.Dice
+                if '3d_jaccard' in metrics:
+                    cmp_metrics['3d_jaccard'][stem] = s.Jaccard
+                if 'pixel_accuracy' in metrics:
+                    cmp_metrics['pixel_accuracy'][stem] = s.PixelAccuracy
+                if 'confusion_matrix' in metrics:
+                    cmp_metrics['confusion_matrix'][stem] = s.ConfusionMatrix
+
+
             for k in range(K):
                 if ignore is not None and k in ignore:
                     continue
 
+                pred_k = (pred == k)[:, None, ...]  # (batch, class, x, y, z)
+                ref_k = (ref == k)[:, None, ...]  # (batch, class, x, y, z)
                 if set(metrics).intersection({'3d_hd', '3d_hd95', '3d_assd'}):
-                    h = boundary_metrics((pred == k)[:, None, ...],
-                                         (ref == k)[:, None, ...],
+                    h = boundary_metrics(pred_k,
+                                         ref_k,
                                          weight_by_size=False,
                                          element_size=tuple(float(e) for e in voxelspacing))
 
@@ -219,7 +236,9 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--num_classes', '-K', '-C', type=int, required=True)
     parser.add_argument('--ignored_classes', type=int, nargs='*',
                         help="Classes to skip (for instance background, or any other non-predicted class).")
-    parser.add_argument('--metrics', type=str, nargs='+', choices=['3d_hd', '3d_hd95', '3d_assd'],
+    parser.add_argument('--metrics', type=str, nargs='+', choices=['3d_hd', '3d_hd95', '3d_assd',
+                                                                   '3d_dice', '3d_jaccard',
+                                                                   'pixel_accuracy', 'confusion_matrix'],
                         help="The metrics to compute.")
 
     parser.add_argument('--cpu', action='store_true')
