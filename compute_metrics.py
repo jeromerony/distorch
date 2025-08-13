@@ -218,9 +218,9 @@ def compute_metrics(loader, metrics: list[str], device, K: int,
                                     ref.type(torch.int64),
                                     K)
                 if '3d_dice' in metrics:
-                    cmp_metrics['3d_dice'][stem] = s.Dice
+                    cmp_metrics['3d_dice'][stem] = s.Dice[0, :]
                 if '3d_jaccard' in metrics:
-                    cmp_metrics['3d_jaccard'][stem] = s.Jaccard
+                    cmp_metrics['3d_jaccard'][stem] = s.Jaccard[0, :]
                 if 'pixel_accuracy' in metrics:
                     cmp_metrics['pixel_accuracy'][stem] = s.PixelAccuracy
                 if 'confusion_matrix' in metrics:
@@ -332,7 +332,7 @@ def main() -> None:
         np_dict: dict[str, np.ndarray] = {k: t.cpu().numpy() for k, t in v.items()}
 
         stacked: np.ndarray = np.stack(list(np_dict.values()))
-        assert stacked.shape == (len(stems), K)
+        assert (ss := stacked.shape) == (len(stems), K), (ss, key)
 
         print(key, stacked.mean(axis=0))
 
