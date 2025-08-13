@@ -171,16 +171,16 @@ def pixel_center_metrics(images1: Tensor, images2: Tensor, **kwargs) -> Distance
 
 
 @dataclass
-class SegmentationMetrics:
-    dice: Tensor
-    jaccard: Tensor
-    confusion_matrix: Tensor
-    pixel_accuracy: Tensor
-    overall_pixel_accuracy: Tensor
+class OverlapMetrics:
+    Dice: Tensor
+    Jaccard: Tensor
+    ConfusionMatrix: Tensor
+    PixelAccuracy: Tensor
+    OverallPixelAccuracy: Tensor
 
 
 @batchify_args('pred', 'ground_truth')
-def segmentation_metrics(pred: Tensor, ground_truth: Tensor, num_classes: int) -> SegmentationMetrics:
+def overlap_metrics(pred: Tensor, ground_truth: Tensor, num_classes: int) -> OverlapMetrics:
     confusion_matrix = ground_truth.new_zeros(ground_truth.size(0), num_classes ** 2, dtype=torch.long)
     confusion_matrix.scatter_(
         dim=1, index=pred.add(ground_truth, alpha=num_classes).flatten(1), value=1, reduce='add'
@@ -195,10 +195,10 @@ def segmentation_metrics(pred: Tensor, ground_truth: Tensor, num_classes: int) -
     class_jaccard = torch.where(jaccard_denominator > 0, class_TP / jaccard_denominator, float('nan'))
     pixel_accuracy = torch.where(class_gt > 0, class_TP / class_gt, float('nan'))
     overall_pixel_accuracy = class_TP.sum(dim=1) / confusion_matrix.sum(dim=(1, 2))
-    return SegmentationMetrics(
-        dice=class_dice,
-        jaccard=class_jaccard,
-        confusion_matrix=confusion_matrix,
-        pixel_accuracy=pixel_accuracy,
-        overall_pixel_accuracy=overall_pixel_accuracy
+    return OverlapMetrics(
+        Dice=class_dice,
+        Jaccard=class_jaccard,
+        ConfusionMatrix=confusion_matrix,
+        PixelAccuracy=pixel_accuracy,
+        OverallPixelAccuracy=overall_pixel_accuracy
     )
