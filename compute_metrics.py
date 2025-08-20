@@ -245,6 +245,8 @@ def compute_metrics(loader, metrics: list[str], device, K: int,
                         cmp_metrics['3d_hd95'][stem][k] = (h.Hausdorff95_1_to_2 + h.Hausdorff95_2_to_1) / 2
                     if '3d_assd' in metrics:
                         cmp_metrics['3d_assd'][stem][k] = h.AverageSymmetricSurfaceDistance
+                    if '3d_nsd' in metrics:
+                        cmp_metrics['3d_nsd'][stem][k] = h.NormalizedSymmetricSurfaceDistance
 
             tq_iter.set_postfix({'batch_shape': list(pred.shape),
                                  'voxelspacing': [f'{float(e):.3f}' for e in voxelspacing]})
@@ -265,6 +267,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument('--ignored_classes', type=int, nargs='*',
                         help="Classes to skip (for instance background, or any other non-predicted class).")
     parser.add_argument('--metrics', type=str, nargs='+', choices=['3d_hd', '3d_hd95', '3d_assd',
+                                                                   '3d_nsd',
                                                                    '3d_dice', '3d_jaccard',
                                                                    'pixel_accuracy', 'confusion_matrix'],
                         help="The metrics to compute.")
