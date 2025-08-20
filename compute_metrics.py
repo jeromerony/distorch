@@ -196,7 +196,7 @@ def compute_metrics(loader, metrics: list[str], device, K: int,
     # Seems silly, but remember that we process classes one at a time, and may ignore some
     cmp_metrics = {m: defaultdict(lambda: torch.zeros((K,),
                                                       dtype=torch.float32,
-                                                      device=device))
+                                                      device=device) * torch.nan)
                    for m in metrics}
     desc = '>> Computing'
     tq_iter = tqdm_(enumerate(loader), total=len(loader), desc=desc)
